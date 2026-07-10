@@ -53,21 +53,23 @@ const record = title ? await this.tracker.resume(title) : null;
 
 `tracker.resume(key)` now delegates to `store.findByTitle(key, platform)` instead of `store.findByUrl(url)`.
 
-### 3.5 Title rename detection
+### 3.5 Title rename detection (OOP — one concern per module)
 
-The text-delta callback in `startTracking()` and `onUrlChange()` already calls `getCurrentText()` each time. Add a title check alongside it:
+Each module owns exactly one concern:
 
+- **Scraper** owns DOM reading: add `getTitle()` method using `config.selectors.titleSelector`
+- **Tracker** owns state persistence: add `updateTitle(title)` that updates in-memory `record.title` and calls `store.update()`
+- **Orchestrator** wires them: on each text delta, checks `scraper.getTitle()` and if changed, calls `tracker.updateTitle()`
+
+```typescript
+// In orchestrator's text-delta callback:
+const newTitle = this.scraper!.getTitle();
+if (newTitle && record.title !== newTitle) {
+  this.tracker.updateTitle(newTitle);
+}
 ```
-this.scraper.onNewText((_delta) => {
-  // ... existing token estimation ...
-  
-  const currentTitle = this.scrapeTitle();
-  if (currentTitle && record.title !== currentTitle) {
-    record.title = currentTitle;
-    this.store.update(record.id, { title: currentTitle });
-  }
-});
-```
+
+Removing text tracking doesn't break title tracking (independent scraper methods), and removing title tracking doesn't break text tracking. The orchestrator is the only coupling point — thin glue code.
 
 ## 4. Non-goals
 
@@ -79,8 +81,21 @@ this.scraper.onNewText((_delta) => {
 
 | File | Change |
 |------|--------|
-| `src/shared/types.ts` | `topic` → `title`, add `findByTitle` to `IConversationStore` |
+| `src/shared/types.ts` | `topic` → `title` in `ConversationRecord`, add `findByTitle` to `IConversationStore`, add `getTitle` + `updateTitle` to interfaces |
 | `src/shared/constants.ts` | Add `titleSelector` to each platform, rename `selectors.title` → `selectors.pageTitle` |
 | `src/shared/db.ts` | Add `title` index, `findByTitle()` method, bump DB version to 2 |
-| `src/content/index.ts` | Use `scrapeTitle()` with `titleSelector`, swap to title-based lookup, add rename detection |
-| `src/content/tracker.ts` | `resume(key)` delegates to title lookup |
+| `src/content/scraper.ts` | Add `getTitle()` method using `config.selectors.titleSelector` |
+| `src/content/tracker.ts` | Add `updateTitle(title)` method; `resume(key)` delegates to `findByTitle` |
+| `src/content/index.ts` | Swap to title-based lookup in `startTracking`/`onUrlChange`, wire rename detection via `scraper.getTitle()` + `tracker.updateTitle()` |
+
+## 6. Interfaces (additions)
+
+### ITextScraper
+```
++ getTitle(): string
+```
+
+### IConversationTracker  
+```
++ updateTitle(title: string): Promise<void>
+```
