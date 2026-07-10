@@ -8,6 +8,7 @@
     "https://chatgpt.com/*",
     "https://gemini.google.com/*",
     "https://claude.ai/*",
+    "https://perplexity.ai/*",
     "https://www.perplexity.ai/*"
   ],
   "background": {
@@ -19,10 +20,10 @@
         "https://chatgpt.com/*",
         "https://gemini.google.com/*",
         "https://claude.ai/*",
+        "https://perplexity.ai/*",
         "https://www.perplexity.ai/*"
       ],
       "js": ["src/content/index.ts"]
     }
-  ],
-  "options_page": "src/options/index.html"
+  ]
 }
