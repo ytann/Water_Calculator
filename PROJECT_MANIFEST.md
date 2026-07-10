@@ -93,6 +93,16 @@ The core issue: `DOMScraper.detach()` disconnects the observer and clears the po
 | 2026-07-11 | Drag-after-prompt fix | Reset dragging=false in contextmenu handler — prompt() consumed mouseup, leaving orphaned drag state |
 | 2026-07-11 | Content script injection investigation | Added diagnostic logs; switched run_at to document_end; documented known injection unreliability on Gemini |
 
+## Planned Features
+
+### Data Export & Durable Storage
+- [ ] **Migrate from IndexedDB → `chrome.storage.local`**: survives browser data clearing (IndexedDB is wiped on "Clear browsing data"; `chrome.storage.local` persists until extension uninstall). The `"storage"` permission is already declared.
+- [ ] **JSON export button**: add option on bottle right-click or a small toolbar button to download all conversation data as `.json` file for offline backup
+- [ ] **Auto-save on delta**: optionally persist a local `.json` file on each water update (via `chrome.downloads` API or clipboard copy)
+
+### Other
+- [ ] **Chat-switch contamination fix**: old scraper feeds deltas to wrong conversation record during SPA navigation (see Known Issues). Fix: detach scraper BEFORE URL-change handler creates new tracker.
+
 ## Chrome Web Store — Publishing Checklist
 
 ### Blockers

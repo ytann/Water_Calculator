@@ -77,4 +77,67 @@ describe('integration: detector → scraper → estimator → converter → trac
       }, 100);
     });
   });
+
+  it('discards deltas when location href no longer matches tracker url', async () => {
+    const config: PlatformConfig = {
+      id: 'test',
+      name: 'Test',
+      urlMatch: 'test.com',
+      selectors: { messages: '.msg', pageTitle: 'title', titleSelector: 'h1', input: 'textarea' },
+      builtIn: true,
+    };
+
+    Object.defineProperty(window, 'location', {
+      value: { hostname: 'test.com', href: 'https://test.com/chat/a' },
+      writable: true,
+      configurable: true,
+    });
+
+    document.body.innerHTML = '<h1>Chat A</h1><div class="container"><div class="msg">Hello from A</div></div>';
+
+    const overlay = new WaterBottleOverlay();
+    overlay.mount();
+
+    const store = fakeStore();
+    const tracker = new ConversationTracker(store, overlay);
+    await tracker.start('https://test.com/chat/a', 'test');
+    expect(tracker.getCurrent()!.waterMl).toBe(0);
+
+    const estimator = new BPEstimator();
+    const converter = new WaterConverter();
+    const scraper = new DOMScraper(config);
+    const container = document.querySelector('.container')!;
+
+    // Register callback with URL guard
+    scraper.onNewText((_delta) => {
+      const current = tracker.getCurrent();
+      if (!current || window.location.href !== current.url) return;
+      const fullText = scraper.getCurrentText();
+      const tokens = estimator.estimate(fullText);
+      const ml = converter.toMl(tokens);
+      if (tokens > 0) tracker.addDelta({ ml, tokens });
+    });
+    scraper.attach(container);
+
+    // Simulate navigating to a different chat: change URL before DOM mutates
+    (window.location as any).href = 'https://test.com/chat/b';
+
+    // DOM mutation for Chat B's content arrives (old scraper still observing)
+    const msg = document.createElement('div');
+    msg.className = 'msg';
+    msg.textContent = 'This text should NOT be added to Chat A';
+    container.appendChild(msg);
+
+    await new Promise<void>((resolve) => {
+      setTimeout(() => {
+        const current = tracker.getCurrent();
+        expect(current).not.toBeNull();
+        // Water should remain at 0 — delta was discarded because URL changed
+        expect(current!.waterMl).toBe(0);
+        expect(current!.tokenCount).toBe(0);
+        overlay.unmount();
+        resolve();
+      }, 100);
+    });
+  });
 });

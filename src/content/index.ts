@@ -86,6 +86,8 @@ class WaterCalculator {
     this.scraper = new DOMScraper(this.config);
     this.estimator.reset();
     this.scraper.onNewText((_delta) => {
+      const current = this.tracker.getCurrent();
+      if (!current || window.location.href !== current.url) return;
       const fullText = this.scraper!.getCurrentText();
       const tokens = this.estimator.estimate(fullText);
       const ml = this.converter.toMl(tokens);
@@ -182,6 +184,8 @@ class WaterCalculator {
       this.scraper = new DOMScraper(this.config);
       this.estimator.reset();
       this.scraper.onNewText((_delta) => {
+        const current = this.tracker.getCurrent();
+        if (!current || window.location.href !== current.url) return;
         const fullText = this.scraper!.getCurrentText();
         const tokens = this.estimator.estimate(fullText);
         const ml = this.converter.toMl(tokens);
