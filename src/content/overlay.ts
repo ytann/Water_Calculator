@@ -372,6 +372,10 @@ export class WaterBottleOverlay implements IOverlayUI {
     const ox = this.gridOffsetX;
     const oy = this.gridOffsetY;
 
+    if (this.frameCount % 60 === 0) {
+      console.log('[wc] render frame', this.frameCount, 'waterMl', this.waterMl.toFixed(1), 'cellSize', cs, 'offset', ox, oy);
+    }
+
     ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
     const isRidgeRow = (row: number) => row === 14 || row === 18 || row === 21;
@@ -407,6 +411,9 @@ export class WaterBottleOverlay implements IOverlayUI {
     const interiorRows = this.findInteriorRows();
     const waterFrac = Math.min(this.waterMl / this.capacityMl, 1);
     const filledRows = Math.floor(interiorRows.length * waterFrac);
+    if (this.frameCount % 60 === 0) {
+      console.log('[wc] interiorRows', interiorRows.length, 'filledRows', filledRows, 'capacity', this.capacityMl);
+    }
 
     for (let i = interiorRows.length - 1; i >= interiorRows.length - filledRows; i--) {
       const row = interiorRows[i];
