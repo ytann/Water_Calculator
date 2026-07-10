@@ -77,7 +77,7 @@ export class DOMScraper implements ITextScraper {
     const parts: string[] = [];
     const elements = document.querySelectorAll(selector);
     for (const el of elements) {
-      const text = (el as HTMLElement).textContent ?? '';
+      const text = (el as HTMLElement).innerText || (el as HTMLElement).textContent || '';
       if (text.trim().length > 0) parts.push(text);
     }
     return parts.join('\n');
