@@ -200,12 +200,6 @@ export class WaterBottleOverlay implements IOverlayUI {
 
   private bubbles: Array<{ x: number; y: number; opacity: number }> = [];
   private waterDrops: Array<{ x: number; y: number; vy: number; opacity: number }> = [];
-  private spillDrops: Array<{ x: number; y: number; life: number }> = [];
-  private splashParticles: Array<{ x: number; y: number; vy: number; life: number; maxLife: number }> = [];
-
-  private corkPopped = false;
-  private corkY = 2;
-  private corkVY = 0;
 
   private dragStartX = 0;
   private dragStartY = 0;
@@ -339,41 +333,24 @@ export class WaterBottleOverlay implements IOverlayUI {
       this.waterMl = this.targetWaterMl;
     }
 
-    // Cork pop animation
-    if (this.waterMl >= this.capacityMl && !this.corkPopped) {
-      this.corkPopped = true;
-      this.corkVY = -2.5;
-    }
-    if (this.corkPopped) {
-      this.corkY += this.corkVY;
-      this.corkVY += 0.08;
-      if (this.corkY < -15) {
-        this.corkY = -15;
-        this.corkVY = 0;
-      }
-    }
+    // Cork pop animation removed — cap stays on, bottle is sealed
+    // No overflow dome — water just fills inside
 
-    // Falling water drops inside bottle (every 12 frames while filling below capacity)
-    if (this.targetWaterMl > this.waterMl && this.targetWaterMl < this.capacityMl && this.frameCount % 12 === 0) {
+    // Falling water drops outside bottle (from cap area down the side)
+    if (this.targetWaterMl > this.waterMl && this.frameCount % 12 === 0) {
       this.waterDrops.push({
         x: 7 + Math.random() * 2,
-        y: 5,
+        y: 2,
         vy: 0.3 + Math.random() * 0.4,
         opacity: 0.9,
       });
     }
 
-    // Water drop movement
+    // Water drops falling outside bottle (condensation / overflow from cap)
     for (const d of this.waterDrops) {
       d.y += d.vy;
       d.vy += 0.03;
-      const interiorRows = this.findInteriorRows();
-      const surfaceRow = interiorRows.length > 0
-        ? interiorRows[interiorRows.length - 1 - Math.floor(interiorRows.length * Math.min(this.waterMl / this.capacityMl, 1.0))]
-        : GRID_ROWS;
-      if (d.y >= surfaceRow) {
-        d.opacity -= 0.15;
-      }
+      if (d.y > GRID_ROWS) d.opacity -= 0.1;
     }
     this.waterDrops = this.waterDrops.filter(d => d.opacity > 0);
 
@@ -386,40 +363,6 @@ export class WaterBottleOverlay implements IOverlayUI {
         b.x += Math.sin(this.frameCount * 0.3 + b.y) * 0.3;
       }
     }
-
-    if (this.waterMl > this.capacityMl && this.corkPopped && this.frameCount % 40 === 0) {
-      const capMid = 7.5;
-      this.spillDrops.push({
-        x: capMid + (Math.random() - 0.5) * 1.5,
-        y: 1,
-        life: 35,
-      });
-    }
-
-    for (const d of this.spillDrops) {
-      d.y += 0.4;
-      d.life--;
-      if (d.life === 27) {
-        const baseRow = GRID_ROWS - 2;
-        for (let i = 0; i < 3; i++) {
-          this.splashParticles.push({
-            x: d.x + (Math.random() - 0.5) * 2,
-            y: baseRow,
-            vy: -1 - Math.random() * 2,
-            life: 6,
-            maxLife: 6,
-          });
-        }
-      }
-    }
-    this.spillDrops = this.spillDrops.filter(d => d.life > 0);
-
-    for (const p of this.splashParticles) {
-      p.y += p.vy;
-      p.vy += 0.15;
-      p.life--;
-    }
-    this.splashParticles = this.splashParticles.filter(p => p.life > 0);
   }
 
   private render(): void {
@@ -439,7 +382,6 @@ export class WaterBottleOverlay implements IOverlayUI {
         const idx = row * GRID_COLS + col;
         const cell = BOTTLE_GRID[idx];
         if (cell !== 1) continue;
-        if (this.corkPopped && isCapRow(row)) continue;
         const x = ox + col * cs;
         const y = oy + row * cs;
 
@@ -462,17 +404,6 @@ export class WaterBottleOverlay implements IOverlayUI {
       }
     }
 
-    // Draw flying cork
-    if (this.corkPopped && this.corkY > -15) {
-      const capCols = [6, 7, 8, 9];
-      for (const col of capCols) {
-        ctx.fillStyle = PALETTE.bottleCap;
-        ctx.fillRect(ox + col * cs, oy + (this.corkY - 1) * cs, cs, cs * 2);
-        ctx.fillStyle = PALETTE.bottleOutline;
-        ctx.fillRect(ox + col * cs, oy + (this.corkY - 1) * cs, cs, 1);
-      }
-    }
-
     const interiorRows = this.findInteriorRows();
     if (interiorRows.length > 0) {
       const waterFrac = Math.min(this.waterMl / this.capacityMl, 1.0);
@@ -480,32 +411,29 @@ export class WaterBottleOverlay implements IOverlayUI {
 
       for (let i = interiorRows.length - 1; i >= interiorRows.length - filledRows; i--) {
         const row = interiorRows[i];
-        for (let col = 1; col < GRID_COLS - 1; col++) {
-          const idx = row * GRID_COLS + col;
-          if (BOTTLE_GRID[idx] === 0) {
-            const x = ox + col * cs;
-            const y = oy + row * cs;
-            const rowsFromSurface = interiorRows.length - 1 - i;
-            ctx.fillStyle = rowsFromSurface <= 2 ? PALETTE.waterSurface : PALETTE.waterMid;
-            ctx.fillRect(x, y, cs, cs);
-          }
+        const bounds = this.rowBounds(row);
+        if (!bounds) continue;
+        for (let col = bounds.left; col <= bounds.right; col++) {
+          const x = ox + col * cs;
+          const y = oy + row * cs;
+          const rowsFromSurface = interiorRows.length - 1 - i;
+          ctx.fillStyle = rowsFromSurface <= 2 ? PALETTE.waterSurface : PALETTE.waterMid;
+          ctx.fillRect(x, y, cs, cs);
         }
       }
 
-      // Shimmer band — light stripe moving across the water body
+      // Shimmer overlay on water — light stripe gliding across
       if (filledRows > 4) {
         const shimmerRow = interiorRows[interiorRows.length - 1 - Math.floor(filledRows / 2)];
-        const shimmerOffset = Math.floor(this.frameCount * 0.3) % GRID_COLS;
-        for (let col = 1; col < GRID_COLS - 1; col++) {
-          const idx = shimmerRow * GRID_COLS + col;
-          if (BOTTLE_GRID[idx] === 0) {
-            const distFromShimmer = Math.abs((col - shimmerOffset + GRID_COLS) % GRID_COLS - GRID_COLS / 2);
+        const bounds = this.rowBounds(shimmerRow);
+        if (bounds) {
+          const shimmerOffset = Math.floor(this.frameCount * 0.3) % (bounds.right - bounds.left + 5);
+          for (let col = bounds.left; col <= bounds.right; col++) {
+            const distFromShimmer = Math.abs(col - bounds.left - shimmerOffset);
             if (distFromShimmer < 3) {
-              const alpha = 1 - distFromShimmer / 3;
-              ctx.globalAlpha = alpha * 0.4;
+              ctx.globalAlpha = (1 - distFromShimmer / 3) * 0.3;
               ctx.fillStyle = PALETTE.waterShimmer;
               ctx.fillRect(ox + col * cs, oy + shimmerRow * cs, cs, cs);
-              // also light the row above
               const aboveIdx = (shimmerRow - 1) * GRID_COLS + col;
               if (BOTTLE_GRID[aboveIdx] === 0) {
                 ctx.fillRect(ox + col * cs, oy + (shimmerRow - 1) * cs, cs, cs);
@@ -519,15 +447,13 @@ export class WaterBottleOverlay implements IOverlayUI {
       // Wavy ripple surface
       if (filledRows > 0 && filledRows <= interiorRows.length) {
         const surfaceRow = interiorRows[interiorRows.length - 1 - filledRows];
-        const waveOffset = Math.floor(Math.sin(this.frameCount * 0.15) * 2);
-        for (let col = 1; col < GRID_COLS - 1; col++) {
-          const idx = surfaceRow * GRID_COLS + col;
-          if (BOTTLE_GRID[idx] !== 1) {
-            const x = ox + col * cs;
-            const y = oy + surfaceRow * cs;
+        const bounds = this.rowBounds(surfaceRow);
+        if (bounds) {
+          const waveOffset = Math.floor(Math.sin(this.frameCount * 0.15) * 2);
+          for (let col = bounds.left; col <= bounds.right; col++) {
             if ((col + waveOffset) % 4 < 2) {
               ctx.fillStyle = PALETTE.waterFoam;
-              ctx.fillRect(x, y, cs, cs);
+              ctx.fillRect(ox + col * cs, oy + surfaceRow * cs, cs, cs);
             }
           }
         }
@@ -551,32 +477,6 @@ export class WaterBottleOverlay implements IOverlayUI {
 
     if (this.waterMl > this.capacityMl) {
       const overflowMl = this.waterMl - this.capacityMl;
-      const domeRows = Math.min(6, Math.floor(overflowMl / 800));
-      const capCols = [6, 7, 8, 9];
-      for (let d = 0; d < domeRows; d++) {
-        const row = 1 - d;
-        const cols = capCols.filter((_, i) => i >= domeRows - d - 1 && i < capCols.length - (domeRows - d - 1));
-        for (const col of cols) {
-          const x = ox + col * cs;
-          const y = oy + (row - 1) * cs;
-          ctx.fillStyle = d === 0 ? PALETTE.waterFoam : PALETTE.waterSurface;
-          ctx.fillRect(x, y, cs, cs);
-        }
-      }
-
-      for (const d of this.spillDrops) {
-        ctx.fillStyle = PALETTE.waterFoam;
-        ctx.fillRect(ox + d.x * cs, oy + d.y * cs, cs * 0.6, cs * 0.6);
-      }
-
-      for (const p of this.splashParticles) {
-        const alpha = p.life / p.maxLife;
-        ctx.globalAlpha = alpha;
-        ctx.fillStyle = PALETTE.waterFoam;
-        ctx.fillRect(ox + p.x * cs, oy + p.y * cs, 2, 2);
-      }
-      ctx.globalAlpha = 1;
-
       const puddleWidth = Math.min(4, Math.floor(overflowMl / 500));
       for (let col = GRID_COLS / 2 - puddleWidth; col <= GRID_COLS / 2 + puddleWidth; col++) {
         const x = ox + col * cs;
@@ -603,10 +503,24 @@ export class WaterBottleOverlay implements IOverlayUI {
     return rows;
   }
 
+  private rowBounds(row: number): { left: number; right: number } | null {
+    const baseIdx = row * GRID_COLS;
+    let left = -1;
+    let right = -1;
+    for (let col = 0; col < GRID_COLS; col++) {
+      if (BOTTLE_GRID[baseIdx + col] === 1) {
+        if (left === -1) left = col;
+        right = col;
+      }
+    }
+    if (left === -1 || right === -1) return null;
+    return { left: left + 1, right: right - 1 };
+  }
+
   update(ml: number): void {
     this.targetWaterMl = ml;
 
-    if (ml > this.waterMl && ml < this.capacityMl) {
+    if (ml > this.waterMl) {
       const bot = this.findInteriorRows();
       const lowestRow = bot[bot.length - 1];
       for (let i = 0; i < 3; i++) {
