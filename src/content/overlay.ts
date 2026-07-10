@@ -195,7 +195,7 @@ export class WaterBottleOverlay implements IOverlayUI {
   private capacityMl = 1000;
 
   private cellSize = 4;
-  private canvasW = 80;
+  private canvasW = 96;
   private canvasH = 120;
   private gridOffsetX = 0;
   private gridOffsetY = 0;
@@ -203,7 +203,6 @@ export class WaterBottleOverlay implements IOverlayUI {
   private bubbles: Array<{ x: number; y: number; opacity: number }> = [];
   private waterDrops: Array<{ x: number; y: number; vy: number; opacity: number }> = [];
   private corkOffsetY = 0;
-  private puddleRipple = 0;
 
   private dragStartX = 0;
   private dragStartY = 0;
@@ -258,21 +257,18 @@ export class WaterBottleOverlay implements IOverlayUI {
 
     this.el.addEventListener('contextmenu', (e) => {
       e.preventDefault();
-      console.log('[wc] contextmenu handler fired, frame before prompt:', this.frameCount);
+      this.dragging = false;
       try {
         const input = prompt(`Bottle capacity (ml, 10-100000):`, String(this.capacityMl));
-        console.log('[wc] prompt returned:', input, 'frame after prompt:', this.frameCount);
         if (!input || !/^\d+$/.test(input.trim())) return;
         const val = parseInt(input.trim(), 10);
         if (val >= 10 && val <= 100000) {
-          console.log('[wc] setCapacity from', this.capacityMl, 'to', val);
-          console.log('[wc] before set: waterMl=', this.waterMl, 'targetWaterMl=', this.targetWaterMl, 'animFrameId=', this.animFrameId);
           this.setCapacity(val);
-          console.log('[wc] after set: waterMl=', this.waterMl, 'targetWaterMl=', this.targetWaterMl, 'animFrameId=', this.animFrameId);
         }
-      } catch (err) {
-        console.log('[wc] prompt error:', err);
+      } catch {
+        // prompt may fail in some content-script contexts; silently ignore
       }
+      this.dragging = false;
     });
 
     const minimizedIcon = this.el.querySelector('.wc-minimized-icon') as HTMLElement;
@@ -331,11 +327,9 @@ export class WaterBottleOverlay implements IOverlayUI {
       this.animFrameId = requestAnimationFrame(loop);
     };
     this.animFrameId = requestAnimationFrame(loop);
-    console.log('[wc] loop started, animFrameId:', this.animFrameId);
 
     this.healthCheckId = window.setInterval(() => {
       if (this.mounted && this.frameCount - this.lastLoopFrame > 3) {
-        console.log('[wc] HEALTH: loop stalled (frame', this.frameCount, 'lastLoopFrame', this.lastLoopFrame, '), restarting');
         cancelAnimationFrame(this.animFrameId);
         this.animFrameId = requestAnimationFrame(loop);
         this.lastLoopFrame = this.frameCount;
@@ -368,9 +362,6 @@ export class WaterBottleOverlay implements IOverlayUI {
     } else {
       this.corkOffsetY = 0;
     }
-
-    // Puddle ripple phase for overflow animation
-    this.puddleRipple = (this.puddleRipple + 0.08) % (Math.PI * 2);
 
     // Overflow condensation drops dripping down outside of bottle
     if (this.waterMl > this.capacityMl && this.frameCount % 12 === 0) {
@@ -409,10 +400,6 @@ export class WaterBottleOverlay implements IOverlayUI {
     const oy = this.gridOffsetY;
 
     ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-
-    if (this.frameCount % 120 === 0) {
-      console.log('[wc] render frame', this.frameCount, 'waterMl:', this.waterMl.toFixed(1), 'target:', this.targetWaterMl.toFixed(1), 'capacity:', this.capacityMl, 'cellSize:', cs, 'animFrameId:', this.animFrameId);
-    }
 
     const isRidgeRow = (row: number) => row === 14 || row === 18 || row === 21;
     const isCapRow = (row: number) => row <= 2;
@@ -461,9 +448,10 @@ export class WaterBottleOverlay implements IOverlayUI {
         const x = ox + col * cs;
         const y = oy + row * cs;
         const seed = row * 73 + col * 47;
-        const r = baseR + Math.round(Math.sin(seed * 0.3 + drift) * 6);
-        const g = baseG + Math.round(Math.sin(seed * 0.3 + drift + 2.1) * 6);
-        const b = baseB + Math.round(Math.sin(seed * 0.3 + drift + 4.2) * 6);
+        const glint = Math.sin(seed * 5.7 + this.frameCount * 0.12) * 8;
+        const r = baseR + Math.round(Math.sin(seed * 1.7 + drift) * 14 + glint);
+        const g = baseG + Math.round(Math.sin(seed * 2.3 + drift + 2.1) * 18 + glint);
+        const b = baseB + Math.round(Math.sin(seed * 1.3 + drift + 4.2) * 20 + glint * 0.7);
         ctx.fillStyle = `rgb(${r},${g},${b})`;
         ctx.fillRect(x, y, cs, cs);
       }
@@ -500,19 +488,32 @@ export class WaterBottleOverlay implements IOverlayUI {
 
     if (this.waterMl > this.capacityMl) {
       const overflowMl = this.waterMl - this.capacityMl;
-      const puddleWidth = Math.min(4, Math.floor(overflowMl / 500));
-      const puddleY = oy + (GRID_ROWS - 1) * cs;
-      const rippleAmp = Math.max(0, 0.4 + Math.sin(this.puddleRipple) * 0.3);
-      const rippleFreq = 0.6;
-      for (let col = GRID_COLS / 2 - puddleWidth; col <= GRID_COLS / 2 + puddleWidth; col++) {
-        const x = ox + col * cs;
-        const ripplePhase = Math.sin(this.puddleRipple + col * rippleFreq) * rippleAmp;
-        const shade = 0.6 + ripplePhase * 0.4;
-        const r = Math.floor(0x15 * shade);
-        const g = Math.floor(0x65 * shade);
-        const b = Math.floor(0xa0 * shade);
+      const puddleWidth = Math.min(6, 2 + Math.floor(overflowMl / 200));
+      const drift = this.frameCount * 0.05;
+
+      const puddleCell = (col: number, row: number, h: number) => {
+        const seed = col * 73 + row * 97;
+        const r = 10 + Math.round(Math.sin(seed * 0.9 + drift) * 20);
+        const g = 65 + Math.round(Math.sin(seed * 0.7 + drift + 2.1) * 35);
+        const b = 120 + Math.round(Math.sin(seed * 0.5 + drift + 4.2) * 50);
         ctx.fillStyle = `rgb(${r},${g},${b})`;
-        ctx.fillRect(x, puddleY, cs, cs * 0.5);
+        ctx.fillRect(ox + col * cs, oy + row * cs, cs, cs * h);
+      };
+
+      const center = GRID_COLS / 2;
+      const half = Math.floor(puddleWidth / 2);
+
+      // Row 27: wide puddle belt below bottle
+      for (let col = center - half - 1; col <= center + half; col++) {
+        puddleCell(col, GRID_ROWS - 1, 0.5);
+      }
+
+      // Row 26: puddle spill left and right of bottle base (base walls cols 6-9 at row 26)
+      for (let col = 3; col < 6; col++) {
+        puddleCell(col, 26, 0.3);
+      }
+      for (let col = 10; col <= 12; col++) {
+        puddleCell(col, 26, 0.3);
       }
     }
   }
@@ -554,7 +555,6 @@ export class WaterBottleOverlay implements IOverlayUI {
   }
 
   update(ml: number): void {
-    console.log('[wc] overlay update: targetMl=' + ml.toFixed(1) + ', currentMl=' + this.waterMl.toFixed(1));
     this.targetWaterMl = ml;
 
     if (ml > this.waterMl) {

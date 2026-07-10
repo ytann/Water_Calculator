@@ -25,24 +25,19 @@ class WaterCalculator {
   }
 
   async init(): Promise<void> {
-    console.log('[wc] init start, url:', window.location.href);
     this.overlay.mount();
-    console.log('[wc] overlay mounted, isMounted:', this.overlay.isMounted());
     this.setupLifecycleListeners();
 
     this.config = this.detector.resolve();
-    console.log('[wc] platform detected:', this.config?.id ?? 'none');
 
     if (!this.config) {
       this.overlay.setState('idle');
       this.overlay.update(0);
       this.watchForPlatform();
-      console.log('[wc] watching for platform (30s timeout)');
       return;
     }
 
     await this.startTracking();
-    console.log('[wc] init complete');
   }
 
   private watchForPlatform(): void {
@@ -70,26 +65,18 @@ class WaterCalculator {
   }
 
   private async startTracking(): Promise<void> {
-    if (!this.config || this.initialized) {
-      console.log('[wc] startTracking skip: config=', !!this.config, 'initialized=', this.initialized);
-      return;
-    }
+    if (!this.config || this.initialized) return;
     this.initialized = true;
 
     const url = window.location.href;
     const isNewChat = this.isNewChatPage(url);
-    console.log('[wc] startTracking url:', url, 'isNewChat:', isNewChat);
     let record = isNewChat ? null : await this.tracker.resume(url);
 
     if (!record) {
       record = await this.tracker.start(url, this.config.id);
-      console.log('[wc] new conversation started:', record.id);
-    } else {
-      console.log('[wc] resumed conversation:', record.id, 'waterMl:', record.waterMl);
     }
 
     const title = this.scrapeTitle();
-    console.log('[wc] scraped title:', title);
     if (title && !record.topic) {
       await this.tracker.addDelta({ ml: 0, tokens: 0, topic: title });
     }
@@ -102,12 +89,10 @@ class WaterCalculator {
       const fullText = this.scraper!.getCurrentText();
       const tokens = this.estimator.estimate(fullText);
       const ml = this.converter.toMl(tokens);
-      console.log('[wc] onNewText: delta len=' + _delta.length + ', full len=' + fullText.length + ', tokens=' + tokens + ', ml=' + ml.toFixed(3));
       if (tokens > 0) this.tracker.addDelta({ ml, tokens });
     });
 
     this.scraper.attach(document.body);
-    console.log('[wc] scraper attached, observer+interval started');
   }
 
   private isNewChatPage(url: string): boolean {

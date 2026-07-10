@@ -7,18 +7,15 @@ export class DOMScraper implements ITextScraper {
   private pollTimer: ReturnType<typeof setInterval> | null = null;
   private callbacks: Array<(delta: string) => void> = [];
   private lastTotalText = 0;
-  private checkCount = 0;
 
   constructor(private config: PlatformConfig) {}
 
   attach(_container: Element): void {
     this.detach();
     const selector = this.config.selectors.messages;
-    console.log('[wc] scraper attach, selector:', selector);
 
     const initialText = this.collectAllText(selector);
     this.lastTotalText = initialText.length;
-    console.log('[wc] scraper initial text length:', initialText.length, 'matching elements:', document.querySelectorAll(selector).length);
 
     this.observer = new MutationObserver((mutations) => {
       for (const mutation of mutations) {
@@ -73,16 +70,10 @@ export class DOMScraper implements ITextScraper {
     if (currentLength > this.lastTotalText) {
       const delta = currentText.slice(this.lastTotalText);
       this.lastTotalText = currentLength;
-      if (delta.trim().length > 0) {
-        console.log('[wc] scraper delta: +' + delta.length + ' chars, total=' + currentLength);
+        if (delta.trim().length > 0) {
         for (const cb of this.callbacks) {
           cb(delta);
         }
-      }
-    } else {
-      this.checkCount++;
-      if (this.checkCount % 20 === 0) {
-        console.log('[wc] scraper poll #' + this.checkCount + ': no delta, length=' + currentLength);
       }
     }
   }
