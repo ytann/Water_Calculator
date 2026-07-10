@@ -1,5 +1,45 @@
 <!DOCTYPE html>
 <html lang="en">
-<head><meta charset="UTF-8" /><title>Water Calculator Options</title></head>
-<body></body>
+<head>
+  <meta charset="UTF-8" />
+  <title>Water Calculator — Options</title>
+  <style>
+    body { font-family: -apple-system, sans-serif; max-width: 600px; margin: 40px auto; padding: 20px; }
+    label { display: block; margin-top: 12px; font-weight: 600; }
+    input, textarea { width: 100%; padding: 6px; margin-top: 4px; box-sizing: border-box; }
+    button { margin-top: 12px; padding: 8px 16px; }
+    .platform-card { border: 1px solid #ddd; border-radius: 8px; padding: 12px; margin-top: 12px; }
+    .platform-card code { font-size: 12px; color: #666; }
+    table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+    th, td { text-align: left; padding: 8px; border-bottom: 1px solid #eee; }
+    th { font-size: 13px; }
+    td { font-size: 12px; }
+  </style>
+  <script type="module" crossorigin src="/assets/index.html-DKaR7wMX.js"></script>
+</head>
+<body>
+  <h1>Water Calculator</h1>
+
+  <h2>Add Platform</h2>
+  <form id="add-platform-form">
+    <label>Name <input name="name" required /></label>
+    <label>URL Match (e.g. myai.com) <input name="urlMatch" required /></label>
+    <label>Message Selector <input name="messages" required /></label>
+    <label>Title Selector <input name="title" required /></label>
+    <label>Input Selector <input name="input" required /></label>
+    <button type="submit">Add Platform</button>
+  </form>
+
+  <h2>Custom Platforms</h2>
+  <div id="custom-platforms"></div>
+
+  <h2>Conversation History</h2>
+  <table id="conversations-table">
+    <thead>
+      <tr><th>Topic</th><th>Platform</th><th>Water</th><th>Tokens</th><th>Date</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+</body>
 </html>
