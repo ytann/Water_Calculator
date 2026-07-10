@@ -60,20 +60,15 @@ const CSS = `
   top: 20px;
   right: 20px;
   z-index: 2147483647;
-  background: rgba(15, 25, 35, 0.85);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
-  padding: 8px 10px 6px;
+  background: transparent;
+  padding: 0;
   font-family: 'Courier New', monospace;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
   user-select: none;
   cursor: grab;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
 }
 
 #${OVERLAY_ID}:active {
@@ -190,8 +185,13 @@ export class WaterBottleOverlay implements IOverlayUI {
   private gridOffsetY = 0;
 
   private bubbles: Array<{ x: number; y: number; opacity: number }> = [];
+  private waterDrops: Array<{ x: number; y: number; vy: number; opacity: number }> = [];
   private spillDrops: Array<{ x: number; y: number; life: number }> = [];
   private splashParticles: Array<{ x: number; y: number; vy: number; life: number; maxLife: number }> = [];
+
+  private corkPopped = false;
+  private corkY = 2;
+  private corkVY = 0;
 
   private dragStartX = 0;
   private dragStartY = 0;
@@ -306,6 +306,45 @@ export class WaterBottleOverlay implements IOverlayUI {
       this.waterMl = this.targetWaterMl;
     }
 
+    // Cork pop animation
+    if (this.waterMl >= WATER_CAPACITY_ML && !this.corkPopped) {
+      this.corkPopped = true;
+      this.corkVY = -2.5;
+    }
+    if (this.corkPopped) {
+      this.corkY += this.corkVY;
+      this.corkVY += 0.08;
+      if (this.corkY < -15) {
+        this.corkY = -15;
+        this.corkVY = 0;
+      }
+    }
+
+    // Falling water drops inside bottle (every 12 frames while filling below capacity)
+    if (this.targetWaterMl > this.waterMl && this.targetWaterMl < WATER_CAPACITY_ML && this.frameCount % 12 === 0) {
+      this.waterDrops.push({
+        x: 7 + Math.random() * 2,
+        y: 5,
+        vy: 0.3 + Math.random() * 0.4,
+        opacity: 0.9,
+      });
+    }
+
+    // Water drop movement
+    for (const d of this.waterDrops) {
+      d.y += d.vy;
+      d.vy += 0.03;
+      const interiorRows = this.findInteriorRows();
+      const surfaceRow = interiorRows.length > 0
+        ? interiorRows[interiorRows.length - 1 - Math.floor(interiorRows.length * Math.min(this.waterMl / WATER_CAPACITY_ML, 1.0))]
+        : GRID_ROWS;
+      if (d.y >= surfaceRow) {
+        d.opacity -= 0.15;
+      }
+    }
+    this.waterDrops = this.waterDrops.filter(d => d.opacity > 0);
+
+    // Rising bubbles
     if (this.frameCount % 2 === 0) {
       this.bubbles = this.bubbles.filter(b => b.opacity > 0);
       for (const b of this.bubbles) {
@@ -315,7 +354,7 @@ export class WaterBottleOverlay implements IOverlayUI {
       }
     }
 
-    if (this.waterMl > WATER_CAPACITY_ML && this.frameCount % 40 === 0) {
+    if (this.waterMl > WATER_CAPACITY_ML && this.corkPopped && this.frameCount % 40 === 0) {
       const capMid = 7.5;
       this.spillDrops.push({
         x: capMid + (Math.random() - 0.5) * 1.5,
@@ -367,6 +406,7 @@ export class WaterBottleOverlay implements IOverlayUI {
         const idx = row * GRID_COLS + col;
         const cell = BOTTLE_GRID[idx];
         if (cell !== 1) continue;
+        if (this.corkPopped && isCapRow(row)) continue;
         const x = ox + col * cs;
         const y = oy + row * cs;
 
@@ -386,6 +426,17 @@ export class WaterBottleOverlay implements IOverlayUI {
         if (col <= 3 || col >= 12) {
           ctx.fillRect(col <= 3 ? x : x + cs - 1, y, 1, cs);
         }
+      }
+    }
+
+    // Draw flying cork
+    if (this.corkPopped && this.corkY > -15) {
+      const capCols = [6, 7, 8, 9];
+      for (const col of capCols) {
+        ctx.fillStyle = PALETTE.bottleCap;
+        ctx.fillRect(ox + col * cs, oy + (this.corkY - 1) * cs, cs, cs * 2);
+        ctx.fillStyle = PALETTE.bottleOutline;
+        ctx.fillRect(ox + col * cs, oy + (this.corkY - 1) * cs, cs, 1);
       }
     }
 
@@ -429,6 +480,14 @@ export class WaterBottleOverlay implements IOverlayUI {
       ctx.globalAlpha = Math.max(0, b.opacity);
       ctx.fillStyle = PALETTE.waterFoam;
       ctx.fillRect(ox + b.x * cs, oy + b.y * cs, cs, cs);
+      ctx.globalAlpha = 1;
+    }
+
+    // Falling water drops (inside bottle while filling)
+    for (const d of this.waterDrops) {
+      ctx.globalAlpha = Math.max(0, d.opacity);
+      ctx.fillStyle = PALETTE.waterSurface;
+      ctx.fillRect(ox + d.x * cs, oy + d.y * cs, cs * 0.5, cs);
       ctx.globalAlpha = 1;
     }
 
