@@ -25,6 +25,26 @@ Goal: All modules implemented, tested, built, merged to main.
 
 ## Known Issues
 
+### OPEN — Chat-switch contamination: old scraper feeds deltas to wrong conversation (2026-07-11)
+
+**Symptom:** Toggling between Gemini chats causes water volume contamination between conversations. Example: User is on Chat A, mid-chat navigates to review old Chat B, then returns to Chat A. Chat A's bottle now includes water volume from Chat B's visible text — permanently contaminating the record in IndexedDB.
+
+**Root cause (race between DOM mutation and URL-change detection):**
+
+When the user navigates from Chat A to Chat B in an SPA (pushState/popstate):
+
+1. Gemini rewrites the DOM to show Chat B's content.
+2. The **old scraper's** MutationObserver fires on the new DOM nodes.
+3. `checkDelta()` finds new text → fires `onNewText` callbacks.
+4. The callback calls `this.tracker.addDelta(...)` — but `this.tracker.current` still points to **Chat A's record** (because `onUrlChange` hasn't been called yet, or it's mid-execution).
+5. Chat B's visible text is added to Chat A's water volume.
+6. `onUrlChange` fires (up to 100ms via pushState hook, or up to 2s via polling fallback), detaches the old scraper, and creates a new one for Chat B.
+7. When the user returns to Chat A, `resume()` loads the now-contaminated record.
+
+The core issue: `DOMScraper.detach()` disconnects the observer and clears the poll timer, but there is a window between the navigation click and `onUrlChange` detection where the old scraper's callbacks can still fire against the new page's DOM, routing deltas to the previous conversation's tracker.
+
+**Affected platforms:** Any SPA-based AI chat (Gemini, ChatGPT, Claude) — the contamination window exists whenever DOM mutation outpaces URL-change detection.
+
 ### OPEN — Content script injection unreliability (2026-07-11)
 
 **Symptom:** Content script intermittently fails to execute on Gemini (`gemini.google.com`). When it fails, zero `[wc]` log lines appear in console — the script never ran. When it works, all diagnostics fire and tracking functions normally.
