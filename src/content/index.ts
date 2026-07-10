@@ -70,17 +70,15 @@ class WaterCalculator {
     if (!this.config || this.initialized) return;
     this.initialized = true;
 
-    const url = window.location.href;
-    const isNewChat = this.isNewChatPage(url);
-    let record = isNewChat ? null : await this.tracker.resume(url);
+    const title = this.scrapeTitle();
+    let record = title ? await this.tracker.resume(title) : null;
 
     if (!record) {
-      record = await this.tracker.start(url, this.config.id);
+      record = await this.tracker.start(title || 'Untitled', this.config.id);
     }
 
-    const title = this.scrapeTitle();
-    if (title && !record.topic) {
-      await this.tracker.addDelta({ ml: 0, tokens: 0, topic: title });
+    if (title && !record.title) {
+      await this.tracker.addDelta({ ml: 0, tokens: 0, title });
     }
 
     this.overlay.setState('active');
@@ -92,6 +90,10 @@ class WaterCalculator {
       const tokens = this.estimator.estimate(fullText);
       const ml = this.converter.toMl(tokens);
       if (tokens > 0) this.tracker.addDelta({ ml, tokens });
+      const newTitle = this.scraper!.getTitle();
+      if (newTitle && this.tracker.getCurrent()?.title !== newTitle) {
+        this.tracker.updateTitle(newTitle);
+      }
     });
 
     this.scraper.attach(document.body);
@@ -110,7 +112,7 @@ class WaterCalculator {
 
   private scrapeTitle(): string {
     if (!this.config) return '';
-    const titleEl = document.querySelector(this.config.selectors.title);
+    const titleEl = document.querySelector(this.config.selectors.titleSelector);
     return titleEl?.textContent?.trim() ?? '';
   }
 
@@ -159,13 +161,20 @@ class WaterCalculator {
     this.scraper?.detach();
     this.initialized = false;
 
-    const record = await this.tracker.resume(url);
-    if (record) {
-      this.overlay.update(record.waterMl);
-      this.overlay.setState('active');
+    const title = this.scrapeTitle();
+    if (title) {
+      const record = await this.tracker.resume(title);
+      if (record) {
+        this.overlay.update(record.waterMl);
+        this.overlay.setState('active');
+      } else {
+        if (!this.config) return;
+        await this.tracker.start(title, this.config.id);
+        this.overlay.update(0);
+      }
     } else {
       if (!this.config) return;
-      await this.tracker.start(url, this.config.id);
+      await this.tracker.start('Untitled', this.config.id);
       this.overlay.update(0);
     }
 
@@ -177,6 +186,10 @@ class WaterCalculator {
         const tokens = this.estimator.estimate(fullText);
         const ml = this.converter.toMl(tokens);
         if (tokens > 0) this.tracker.addDelta({ ml, tokens });
+        const newTitle = this.scraper!.getTitle();
+        if (newTitle && this.tracker.getCurrent()?.title !== newTitle) {
+          this.tracker.updateTitle(newTitle);
+        }
       });
       this.scraper.attach(document.body);
       this.initialized = true;
