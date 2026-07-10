@@ -11,7 +11,7 @@ export const DEFAULT_PLATFORMS: PlatformConfig[] = [
     name: 'ChatGPT',
     urlMatch: 'chatgpt.com',
     selectors: {
-      messages: '[data-message-id], [data-message-author-role], article[data-testid*="turn"], div[data-testid*="turn"]',
+      messages: '[data-message-author-role="assistant"][data-message-id]',
       title: 'title',
       input: '#prompt-textarea, [contenteditable="true"]',
     },
@@ -22,7 +22,7 @@ export const DEFAULT_PLATFORMS: PlatformConfig[] = [
     name: 'Gemini',
     urlMatch: 'gemini.google.com',
     selectors: {
-      messages: 'message-content, .message-content, [data-message-content]',
+      messages: 'message-content',
       title: 'title',
       input: 'rich-textarea, [contenteditable]',
     },
@@ -33,7 +33,7 @@ export const DEFAULT_PLATFORMS: PlatformConfig[] = [
     name: 'Claude',
     urlMatch: 'claude.ai',
     selectors: {
-      messages: '[data-start], .message-content, .font-claude-message',
+      messages: '[data-start], .font-claude-message',
       title: 'title',
       input: '.ProseMirror, [contenteditable]',
     },

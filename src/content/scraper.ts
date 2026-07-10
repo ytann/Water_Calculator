@@ -11,6 +11,7 @@ export class DOMScraper implements ITextScraper {
   constructor(private config: PlatformConfig) {}
 
   attach(_container: Element): void {
+    this.detach();
     const selector = this.config.selectors.messages;
 
     const initialText = this.collectAllText(selector);
@@ -56,6 +57,11 @@ export class DOMScraper implements ITextScraper {
     };
   }
 
+  getCurrentText(): string {
+    const selector = this.config.selectors.messages;
+    return this.collectAllText(selector);
+  }
+
   private checkDelta(selector: string): void {
     if (!document.body) return;
     const currentText = this.collectAllText(selector);
@@ -73,9 +79,9 @@ export class DOMScraper implements ITextScraper {
   }
 
   private getElementText(el: HTMLElement): string {
-    const text = el.textContent || '';
-    const inner = el.innerText || '';
-    return inner.length > text.length ? inner : text;
+    const inner = el.innerText?.trim();
+    if (inner) return inner;
+    return el.textContent || '';
   }
 
   private collectAllText(selector: string): string {

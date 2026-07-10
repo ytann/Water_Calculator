@@ -39,10 +39,12 @@ export interface ITextScraper {
   attach(container: Element): void;
   detach(): void;
   onNewText(callback: (delta: string) => void): () => void;
+  getCurrentText(): string;
 }
 
 export interface ITokenEstimator {
   estimate(text: string): number;
+  reset(): void;
 }
 
 export interface IWaterConverter {

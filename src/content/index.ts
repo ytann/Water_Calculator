@@ -85,10 +85,12 @@ class WaterCalculator {
     this.overlay.setState('active');
 
     this.scraper = new DOMScraper(this.config);
-    this.scraper.onNewText((delta) => {
-      const tokens = this.estimator.estimate(delta);
+    this.estimator.reset();
+    this.scraper.onNewText((_delta) => {
+      const fullText = this.scraper!.getCurrentText();
+      const tokens = this.estimator.estimate(fullText);
       const ml = this.converter.toMl(tokens);
-      this.tracker.addDelta({ ml, tokens });
+      if (tokens > 0) this.tracker.addDelta({ ml, tokens });
     });
 
     const container = this.findMessageContainer();
@@ -176,10 +178,12 @@ class WaterCalculator {
 
     if (this.config) {
       this.scraper = new DOMScraper(this.config);
-      this.scraper.onNewText((delta) => {
-        const tokens = this.estimator.estimate(delta);
+      this.estimator.reset();
+      this.scraper.onNewText((_delta) => {
+        const fullText = this.scraper!.getCurrentText();
+        const tokens = this.estimator.estimate(fullText);
         const ml = this.converter.toMl(tokens);
-        this.tracker.addDelta({ ml, tokens });
+        if (tokens > 0) this.tracker.addDelta({ ml, tokens });
       });
       const container = this.findMessageContainer();
       if (container) {

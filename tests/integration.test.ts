@@ -54,10 +54,11 @@ describe('integration: detector → scraper → estimator → converter → trac
     const container = document.querySelector('.container')!;
 
     await new Promise<void>((resolve) => {
-      scraper.onNewText((delta) => {
-        const tokens = estimator.estimate(delta);
+      scraper.onNewText((_delta) => {
+        const fullText = scraper.getCurrentText();
+        const tokens = estimator.estimate(fullText);
         const ml = converter.toMl(tokens);
-        tracker.addDelta({ ml, tokens });
+        if (tokens > 0) tracker.addDelta({ ml, tokens });
       });
       scraper.attach(container);
 
