@@ -188,6 +188,8 @@ export class WaterBottleOverlay implements IOverlayUI {
   private mounted = false;
   private animFrameId = 0;
   private frameCount = 0;
+  private lastLoopFrame = 0;
+  private healthCheckId = 0;
   private waterMl = 0;
   private targetWaterMl = 0;
   private capacityMl = 1000;
@@ -256,11 +258,15 @@ export class WaterBottleOverlay implements IOverlayUI {
 
     this.el.addEventListener('contextmenu', (e) => {
       e.preventDefault();
-      const input = prompt(`Bottle capacity (ml, 10-100000):`, String(this.capacityMl));
-      if (!input || !/^\d+$/.test(input.trim())) return;
-      const val = parseInt(input.trim(), 10);
-      if (val >= 10 && val <= 100000) {
-        this.setCapacity(val);
+      try {
+        const input = prompt(`Bottle capacity (ml, 10-100000):`, String(this.capacityMl));
+        if (!input || !/^\d+$/.test(input.trim())) return;
+        const val = parseInt(input.trim(), 10);
+        if (val >= 10 && val <= 100000) {
+          this.setCapacity(val);
+        }
+      } catch {
+        // prompt may fail in some content-script contexts; silently ignore
       }
     });
 
@@ -313,18 +319,31 @@ export class WaterBottleOverlay implements IOverlayUI {
 
   private startLoop(): void {
     const loop = () => {
+      this.lastLoopFrame = this.frameCount;
       this.frameCount++;
       this.updateAnimations();
       this.render();
       this.animFrameId = requestAnimationFrame(loop);
     };
     this.animFrameId = requestAnimationFrame(loop);
+
+    this.healthCheckId = window.setInterval(() => {
+      if (this.mounted && this.frameCount - this.lastLoopFrame > 3) {
+        cancelAnimationFrame(this.animFrameId);
+        this.animFrameId = requestAnimationFrame(loop);
+        this.lastLoopFrame = this.frameCount;
+      }
+    }, 1000);
   }
 
   private stopLoop(): void {
     if (this.animFrameId) {
       cancelAnimationFrame(this.animFrameId);
       this.animFrameId = 0;
+    }
+    if (this.healthCheckId) {
+      clearInterval(this.healthCheckId);
+      this.healthCheckId = 0;
     }
   }
 

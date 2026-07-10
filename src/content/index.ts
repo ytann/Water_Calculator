@@ -19,7 +19,6 @@ class WaterCalculator {
   private config: PlatformConfig | null = null;
   private initialized = false;
   private lastUrl = window.location.href;
-  private initDelay = 1000;
 
   constructor() {
     this.detector = new PlatformDetector(DEFAULT_PLATFORMS);
@@ -193,4 +192,4 @@ class WaterCalculator {
 }
 
 const app = new WaterCalculator();
-app.init();
+app.init().catch(() => {});
