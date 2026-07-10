@@ -62,6 +62,13 @@ export class DOMScraper implements ITextScraper {
     return this.collectAllText(selector);
   }
 
+  getTitle(): string {
+    const selector = this.config.selectors.titleSelector;
+    if (!selector || !document.body) return '';
+    const el = document.querySelector(selector);
+    return el?.textContent?.trim() ?? '';
+  }
+
   private checkDelta(selector: string): void {
     if (!document.body) return;
     const currentText = this.collectAllText(selector);
