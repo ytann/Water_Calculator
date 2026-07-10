@@ -25,9 +25,22 @@ const COMMON_PAIRS = [
   // punctuation and symbol combos (for code/math)
   'e ','s ','t ','d ','n ','. ',' a',' t',' i',' o','\n\n','...','.,',
   'qu','ua','ui','ue','uo','au','eu','iu','ou',
-  // math/code common
-  '=\\','\\t','\\f','\\m','_{','}^','\\s','\\l','\\r','te','xt','_i','_j',
-  '^T','\\d','\\c','\\a','\\e','\\p','do','ts','..','$$',
+  // math/code common — high priority for technical text
+  '\\t','\\te','\\tex','\\text',
+  '\\m','\\ma','\\mat','\\math',
+  '\\f','\\fr','\\fra','\\frac',
+  '\\s','\\sq','\\sqr','\\sqrt',
+  '\\l','\\le','\\lef','\\left',
+  '\\r','\\ri','\\rig','\\righ','\\right',
+  '\\d','\\do','\\dot','\\dots',
+  '\\c','\\cd','\\cdot',
+  '\\b','\\bb','\\mathbb',
+  '\\ti','\\time','\\times',
+  '\\su','\\sum',
+  '\\q','\\qu','\\qua','\\quad',
+  '\\in',
+  '=\\','_{','}^','^T','_i','_j','_k',
+  '\\d','\\c','\\a','\\e','\\p','..','$$',
   // numbers
   '12','10','11','20','23','25','30','50','00','01','02','03','04','05',
   '06','07','08','09','19','18','17','16','15','14','13','21','22','24',
@@ -70,29 +83,25 @@ export class BPEstimator implements ITokenEstimator {
     let changed = true;
     while (changed) {
       changed = false;
-      let bestPair: [number, number] | null = null;
       let bestRank = Infinity;
+      let bestPairStr = '';
 
       for (let i = 0; i < tokens.length - 1; i++) {
         const pairKey = tokens[i] + tokens[i + 1];
         const rank = VOCAB.get(pairKey);
         if (rank !== undefined && rank < bestRank) {
           bestRank = rank;
-          bestPair = [i, i + 1];
+          bestPairStr = pairKey;
         }
       }
 
-      if (bestPair !== null) {
-        const merged = tokens[bestPair[0]] + tokens[bestPair[1]];
-        tokens.splice(bestPair[0], 2, merged);
-        // After a merge, try 3-char pair
-        if (bestPair[0] > 0) {
-          const prev3 = tokens[bestPair[0] - 1] + merged;
-          if (!VOCAB.has(prev3) && merged.length >= 2) {
-            // no-op: the loop handles this on next iteration
-          }
+      if (bestPairStr === '') break;
+
+      for (let i = tokens.length - 2; i >= 0; i--) {
+        if (tokens[i] + tokens[i + 1] === bestPairStr) {
+          tokens.splice(i, 2, bestPairStr);
+          changed = true;
         }
-        changed = true;
       }
     }
 
