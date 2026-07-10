@@ -7,46 +7,49 @@ const GRID_COLS = 16;
 const GRID_ROWS = 28;
 
 // 0 = empty, 1 = glass wall, 2 = water, 3 = water surface
+// PET water bottle silhouette: cap → neck → shoulders → ridged body → base
 const BOTTLE_GRID = new Uint8Array([
   0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, // row 0
-  0,0,0,0,1,1,1,1,1,1,1,1,0,0,0,0, // row 1
-  0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0, // row 2
-  0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0, // row 3
-  0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0, // row 4
-  0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0, // row 5
-  0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0, // row 6
-  0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0, // row 7
-  0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0, // row 8
-  0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0, // row 9
-  0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0, // row 10
+  0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0, // row 1 — cap (4 wide)
+  0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0, // row 2 — cap
+  0,0,0,0,0,1,1,0,0,1,1,0,0,0,0,0, // row 3 — neck ring
+  0,0,0,0,0,0,1,0,0,1,0,0,0,0,0,0, // row 4 — neck
+  0,0,0,0,0,0,1,0,0,1,0,0,0,0,0,0, // row 5 — neck
+  0,0,0,0,0,0,1,0,0,1,0,0,0,0,0,0, // row 6 — neck
+  0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0, // row 7 — neck base
+  0,0,0,0,0,0,1,0,0,1,0,0,0,0,0,0, // row 8 — shoulder start
+  0,0,0,0,0,1,0,0,0,0,1,0,0,0,0,0, // row 9 — shoulder widening
+  0,0,0,0,0,1,0,0,0,0,1,0,0,0,0,0, // row 10
   0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0, // row 11
-  0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0, // row 12
+  0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0, // row 12 — body top
   0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0, // row 13
-  0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0, // row 14
+  0,0,0,0,0,1,0,0,0,0,1,0,0,0,0,0, // row 14 — ridge indent
   0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0, // row 15
-  0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0, // row 16 — neck narrowing
-  0,0,0,0,0,0,1,0,0,1,0,0,0,0,0,0, // row 17
-  0,0,0,0,0,1,0,0,0,0,1,0,0,0,0,0, // row 18 — shoulder
+  0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0, // row 16
+  0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0, // row 17
+  0,0,0,0,0,1,0,0,0,0,1,0,0,0,0,0, // row 18 — ridge indent
   0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0, // row 19
-  0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0, // row 20 — body
-  0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0, // row 21
+  0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0, // row 20
+  0,0,0,0,0,1,0,0,0,0,1,0,0,0,0,0, // row 21 — ridge indent
   0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0, // row 22
-  0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0, // row 23
-  0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0, // row 24
-  0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0, // row 25
-  0,0,0,0,1,1,1,1,1,1,1,1,0,0,0,0, // row 26 — base
+  0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0, // row 23 — body base
+  0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0, // row 24 — base curve
+  0,0,0,0,0,1,1,0,0,1,1,0,0,0,0,0, // row 25 — rounded bottom
+  0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0, // row 26 — flat base
   0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, // row 27
 ]);
 
 const PALETTE = {
-  glassOutline: '#4a7c8c',
-  glassFill: '#6da5b8',
-  glassHighlight: '#a8d5e2',
-  waterDeep: '#1a5276',
-  waterMid: '#2471a3',
-  waterSurface: '#3498db',
-  waterFoam: '#85c1e9',
-  puddle: '#2471a3',
+  bottleOutline: '#3a6b8c',
+  bottleFill: '#5b9ec4',
+  bottleHighlight: '#8ec8e8',
+  bottleRidge: '#4a8ab0',
+  bottleCap: '#2d5a7a',
+  waterDeep: '#0d3b5e',
+  waterMid: '#1565a0',
+  waterSurface: '#2196f3',
+  waterFoam: '#64b5f6',
+  puddle: '#1565a0',
 } as const;
 
 const WATER_CAPACITY_ML = 1000;
@@ -313,21 +316,23 @@ export class WaterBottleOverlay implements IOverlayUI {
     }
 
     if (this.waterMl > WATER_CAPACITY_ML && this.frameCount % 40 === 0) {
+      const capMid = 7.5;
       this.spillDrops.push({
-        x: GRID_COLS / 2 + (Math.random() - 0.5) * 3,
-        y: 0,
-        life: 30,
+        x: capMid + (Math.random() - 0.5) * 1.5,
+        y: 1,
+        life: 35,
       });
     }
 
     for (const d of this.spillDrops) {
       d.y += 0.4;
       d.life--;
-      if (d.life === 23) {
+      if (d.life === 27) {
+        const baseRow = GRID_ROWS - 2;
         for (let i = 0; i < 3; i++) {
           this.splashParticles.push({
             x: d.x + (Math.random() - 0.5) * 2,
-            y: GRID_ROWS - 1,
+            y: baseRow,
             vy: -1 - Math.random() * 2,
             life: 6,
             maxLife: 6,
@@ -354,6 +359,9 @@ export class WaterBottleOverlay implements IOverlayUI {
 
     ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
+    const isRidgeRow = (row: number) => row === 14 || row === 18 || row === 21;
+    const isCapRow = (row: number) => row <= 2;
+
     for (let row = 0; row < GRID_ROWS; row++) {
       for (let col = 0; col < GRID_COLS; col++) {
         const idx = row * GRID_COLS + col;
@@ -362,14 +370,18 @@ export class WaterBottleOverlay implements IOverlayUI {
         const x = ox + col * cs;
         const y = oy + row * cs;
 
-        if (col <= 3) {
-          ctx.fillStyle = PALETTE.glassHighlight;
+        if (isCapRow(row)) {
+          ctx.fillStyle = PALETTE.bottleCap;
+        } else if (isRidgeRow(row)) {
+          ctx.fillStyle = PALETTE.bottleRidge;
+        } else if (col <= 3) {
+          ctx.fillStyle = PALETTE.bottleHighlight;
         } else {
-          ctx.fillStyle = PALETTE.glassFill;
+          ctx.fillStyle = PALETTE.bottleFill;
         }
         ctx.fillRect(x, y, cs, cs);
 
-        ctx.fillStyle = PALETTE.glassOutline;
+        ctx.fillStyle = PALETTE.bottleOutline;
         ctx.fillRect(x, y, cs, 1);
         if (col <= 3 || col >= 12) {
           ctx.fillRect(col <= 3 ? x : x + cs - 1, y, 1, cs);
@@ -390,11 +402,7 @@ export class WaterBottleOverlay implements IOverlayUI {
             const x = ox + col * cs;
             const y = oy + row * cs;
             const rowsFromSurface = interiorRows.length - 1 - i;
-            if (rowsFromSurface <= 2) {
-              ctx.fillStyle = PALETTE.waterSurface;
-            } else {
-              ctx.fillStyle = PALETTE.waterMid;
-            }
+            ctx.fillStyle = rowsFromSurface <= 2 ? PALETTE.waterSurface : PALETTE.waterMid;
             ctx.fillRect(x, y, cs, cs);
           }
         }
@@ -403,12 +411,11 @@ export class WaterBottleOverlay implements IOverlayUI {
       if (filledRows > 0 && filledRows <= interiorRows.length) {
         const surfaceRow = interiorRows[interiorRows.length - 1 - filledRows];
         const wavePhase = Math.floor(this.frameCount / 3) % 2;
-        const row = surfaceRow;
         for (let col = 1; col < GRID_COLS - 1; col++) {
-          const idx = row * GRID_COLS + col;
+          const idx = surfaceRow * GRID_COLS + col;
           if (BOTTLE_GRID[idx] !== 1) {
             const x = ox + col * cs;
-            const y = oy + row * cs;
+            const y = oy + surfaceRow * cs;
             if ((col + wavePhase) % 4 < 2) {
               ctx.fillStyle = PALETTE.waterFoam;
               ctx.fillRect(x, y, cs, cs);
@@ -421,19 +428,17 @@ export class WaterBottleOverlay implements IOverlayUI {
     for (const b of this.bubbles) {
       ctx.globalAlpha = Math.max(0, b.opacity);
       ctx.fillStyle = PALETTE.waterFoam;
-      const bx = ox + b.x * cs;
-      const by = oy + b.y * cs;
-      ctx.fillRect(bx, by, cs, cs);
+      ctx.fillRect(ox + b.x * cs, oy + b.y * cs, cs, cs);
       ctx.globalAlpha = 1;
     }
 
     if (this.waterMl > WATER_CAPACITY_ML) {
       const overflowMl = this.waterMl - WATER_CAPACITY_ML;
-      const domeRows = Math.min(8, Math.floor(overflowMl / 625));
-      const rimCols = [4, 5, 6, 7, 8, 9, 10, 11];
+      const domeRows = Math.min(6, Math.floor(overflowMl / 800));
+      const capCols = [6, 7, 8, 9];
       for (let d = 0; d < domeRows; d++) {
         const row = 1 - d;
-        const cols = rimCols.filter((_, i) => i >= domeRows - d - 1 && i < rimCols.length - (domeRows - d - 1));
+        const cols = capCols.filter((_, i) => i >= domeRows - d - 1 && i < capCols.length - (domeRows - d - 1));
         for (const col of cols) {
           const x = ox + col * cs;
           const y = oy + (row - 1) * cs;
@@ -468,9 +473,14 @@ export class WaterBottleOverlay implements IOverlayUI {
   private findInteriorRows(): number[] {
     const rows: number[] = [];
     for (let row = 3; row < GRID_ROWS - 1; row++) {
-      const idx = row * GRID_COLS + 5;
-      if (BOTTLE_GRID[idx] === 0) {
-        rows.push(row);
+      const baseIdx = row * GRID_COLS;
+      const leftWall = BOTTLE_GRID.slice(baseIdx, baseIdx + 8).lastIndexOf(1);
+      const rightWall = BOTTLE_GRID.slice(baseIdx + 8, baseIdx + GRID_COLS).indexOf(1);
+      if (leftWall >= 0 && rightWall >= 0) {
+        const midCol = 8 + rightWall - 1;
+        if (BOTTLE_GRID[baseIdx + midCol] === 0) {
+          rows.push(row);
+        }
       }
     }
     return rows;
