@@ -4,42 +4,48 @@ const TRACKED_ATTR = 'data-wc-tracked';
 
 export class DOMScraper implements ITextScraper {
   private observer: MutationObserver | null = null;
+  private pollTimer: ReturnType<typeof setInterval> | null = null;
   private callbacks: Array<(delta: string) => void> = [];
+  private lastTotalText = 0;
 
   constructor(private config: PlatformConfig) {}
 
-  attach(container: Element): void {
+  attach(_container: Element): void {
     const selector = this.config.selectors.messages;
 
-    this.scanExisting(selector);
+    const initialText = this.collectAllText(selector);
+    this.lastTotalText = initialText.length;
 
     this.observer = new MutationObserver((mutations) => {
       for (const mutation of mutations) {
         for (const node of mutation.addedNodes) {
           if (!(node instanceof Element)) continue;
-
-          const messageNodes = node.matches(selector)
-            ? [node]
-            : Array.from(node.querySelectorAll(selector));
-
-          for (const msgNode of messageNodes) {
-            if (msgNode.hasAttribute(TRACKED_ATTR)) continue;
-            msgNode.setAttribute(TRACKED_ATTR, '1');
-            this.fireCallbacks(msgNode as HTMLElement);
+          if (node.matches(selector)) {
+            node.setAttribute(TRACKED_ATTR, '1');
           }
         }
       }
+      this.checkDelta(selector);
     });
 
     this.observer.observe(document.body, {
       childList: true,
       subtree: true,
+      characterData: true,
     });
+
+    this.pollTimer = setInterval(() => {
+      this.checkDelta(selector);
+    }, 500);
   }
 
   detach(): void {
     this.observer?.disconnect();
     this.observer = null;
+    if (this.pollTimer !== null) {
+      clearInterval(this.pollTimer);
+      this.pollTimer = null;
+    }
   }
 
   onNewText(callback: (delta: string) => void): () => void {
@@ -50,21 +56,30 @@ export class DOMScraper implements ITextScraper {
     };
   }
 
-  private scanExisting(selector: string): void {
-    const existing = document.querySelectorAll(selector);
-    for (const el of existing) {
-      if (el.hasAttribute(TRACKED_ATTR)) continue;
-      el.setAttribute(TRACKED_ATTR, '1');
-      this.fireCallbacks(el as HTMLElement);
+  private checkDelta(selector: string): void {
+    if (!document.body) return;
+    const currentText = this.collectAllText(selector);
+    const currentLength = currentText.length;
+
+    if (currentLength > this.lastTotalText) {
+      const delta = currentText.slice(this.lastTotalText);
+      this.lastTotalText = currentLength;
+      if (delta.trim().length > 0) {
+        for (const cb of this.callbacks) {
+          cb(delta);
+        }
+      }
     }
   }
 
-  private fireCallbacks(el: HTMLElement): void {
-    const text = el.textContent ?? '';
-    if (text.trim().length > 0) {
-      for (const cb of this.callbacks) {
-        cb(text);
-      }
+  private collectAllText(selector: string): string {
+    if (!document.body) return '';
+    const parts: string[] = [];
+    const elements = document.querySelectorAll(selector);
+    for (const el of elements) {
+      const text = (el as HTMLElement).textContent ?? '';
+      if (text.trim().length > 0) parts.push(text);
     }
+    return parts.join('\n');
   }
 }
