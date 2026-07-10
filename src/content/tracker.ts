@@ -1,6 +1,6 @@
 import type { ConversationRecord, IConversationStore, IOverlayUI, IConversationTracker, AddDeltaParams } from '../shared/types';
 
-const MAX_WATER_ML = 9_999_000; // 9999L cap
+const MAX_WATER_ML = 9_999_000;
 
 export class ConversationTracker implements IConversationTracker {
   private current: ConversationRecord | null = null;
@@ -10,12 +10,12 @@ export class ConversationTracker implements IConversationTracker {
     private overlay: IOverlayUI,
   ) {}
 
-  async start(url: string, platform: string): Promise<ConversationRecord> {
+  async start(title: string, platform: string): Promise<ConversationRecord> {
     const record: ConversationRecord = {
       id: crypto.randomUUID(),
-      url,
+      url: window.location.href,
       platform,
-      topic: '',
+      title,
       waterMl: 0,
       tokenCount: 0,
       startedAt: new Date().toISOString(),
@@ -27,8 +27,9 @@ export class ConversationTracker implements IConversationTracker {
     return record;
   }
 
-  async resume(url: string): Promise<ConversationRecord | null> {
-    const record = await this.store.findByUrl(url);
+  async resume(title: string): Promise<ConversationRecord | null> {
+    if (!this.current) return null;
+    const record = await this.store.findByTitle(title, this.current.platform);
     if (record) {
       this.current = record;
       this.overlay.update(record.waterMl);
@@ -42,8 +43,8 @@ export class ConversationTracker implements IConversationTracker {
     this.current.waterMl = Math.min(this.current.waterMl + params.ml, MAX_WATER_ML);
     this.current.tokenCount += params.tokens;
     this.current.updatedAt = new Date().toISOString();
-    if (params.topic !== undefined) {
-      this.current.topic = params.topic;
+    if (params.title !== undefined) {
+      this.current.title = params.title;
     }
 
     this.overlay.update(this.current.waterMl);
@@ -52,8 +53,14 @@ export class ConversationTracker implements IConversationTracker {
       waterMl: this.current.waterMl,
       tokenCount: this.current.tokenCount,
       updatedAt: this.current.updatedAt,
-      ...(params.topic !== undefined ? { topic: params.topic } : {}),
+      ...(params.title !== undefined ? { title: params.title } : {}),
     });
+  }
+
+  async updateTitle(title: string): Promise<void> {
+    if (!this.current) return;
+    this.current.title = title;
+    await this.store.update(this.current.id, { title });
   }
 
   getCurrent(): ConversationRecord | null {
