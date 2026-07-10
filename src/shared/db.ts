@@ -1,7 +1,7 @@
 import type { ConversationRecord, IConversationStore } from './types';
 
 const STORE_NAME = 'conversations';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 export class IndexedDBStore implements IConversationStore {
   private ready: Promise<void>;
@@ -20,6 +20,12 @@ export class IndexedDBStore implements IConversationStore {
           const store = db.createObjectStore(STORE_NAME, { keyPath: 'id' });
           store.createIndex('url', 'url', { unique: false });
           store.createIndex('platform', 'platform', { unique: false });
+          store.createIndex('title', 'title', { unique: false });
+        } else {
+          const store = req.transaction!.objectStore(STORE_NAME);
+          if (!store.indexNames.contains('title')) {
+            store.createIndex('title', 'title', { unique: false });
+          }
         }
       };
 
@@ -49,7 +55,7 @@ export class IndexedDBStore implements IConversationStore {
 
   async update(
     id: string,
-    fields: Partial<Pick<ConversationRecord, 'waterMl' | 'tokenCount' | 'topic' | 'updatedAt'>>
+    fields: Partial<Pick<ConversationRecord, 'waterMl' | 'tokenCount' | 'title' | 'updatedAt'>>
   ): Promise<void> {
     await this.ready;
     const db = await this.db();
@@ -76,6 +82,26 @@ export class IndexedDBStore implements IConversationStore {
       const index = tx.objectStore(STORE_NAME).index('url');
       const req = index.get(url);
       req.onsuccess = () => { db.close(); resolve(req.result ?? null); };
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  async findByTitle(title: string, platform: string): Promise<ConversationRecord | null> {
+    await this.ready;
+    const db = await this.db();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, 'readonly');
+      const index = tx.objectStore(STORE_NAME).index('title');
+      const req = index.get(title);
+      req.onsuccess = () => {
+        const record = req.result ?? null;
+        db.close();
+        if (record && record.platform === platform) {
+          resolve(record);
+        } else {
+          resolve(null);
+        }
+      };
       req.onerror = () => reject(req.error);
     });
   }
