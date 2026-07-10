@@ -10,7 +10,7 @@ const config: PlatformConfig = {
   id: 'test',
   name: 'Test',
   urlMatch: 'test.com',
-  selectors: { messages: '.msg', title: 'h1', input: 'textarea' },
+  selectors: { messages: '.msg', pageTitle: 'title', titleSelector: 'h1', input: 'textarea' },
   builtIn: true,
 };
 

@@ -13,7 +13,7 @@ describe('integration: detector → scraper → estimator → converter → trac
     return {
       create: vi.fn(async (r) => { records.set(r.id, { ...r }); }),
       update: vi.fn(async (id, f) => { Object.assign(records.get(id), f); }),
-      findByUrl: vi.fn(async (url) => [...records.values()].find((r: any) => r.url === url) ?? null),
+      findByTitle: vi.fn(async (title, platform) => [...records.values()].find((r: any) => r.title === title && r.platform === platform) ?? null),
       findAll: vi.fn(async () => [...records.values()]),
       delete: vi.fn(async (id) => { records.delete(id); }),
     };
@@ -24,7 +24,7 @@ describe('integration: detector → scraper → estimator → converter → trac
       id: 'test',
       name: 'Test',
       urlMatch: 'test.com',
-      selectors: { messages: '.msg', title: 'h1', input: 'textarea' },
+      selectors: { messages: '.msg', pageTitle: 'title', titleSelector: 'h1', input: 'textarea' },
       builtIn: true,
     };
 

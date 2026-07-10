@@ -8,7 +8,7 @@ describe('PlatformDetector', () => {
     id: 'chatgpt',
     name: 'ChatGPT',
     urlMatch: 'chatgpt.com',
-    selectors: { messages: '[data-message]', title: 'title', input: '#input' },
+    selectors: { messages: '[data-message]', pageTitle: 'title', titleSelector: 'title', input: '#input' },
     builtIn: true,
   };
 
@@ -56,7 +56,7 @@ describe('PlatformDetector', () => {
       id: 'new',
       name: 'New',
       urlMatch: 'newplatform.com',
-      selectors: { messages: '.msg', title: 'h1', input: 'textarea' },
+      selectors: { messages: '.msg', pageTitle: 'title', titleSelector: 'h1', input: 'textarea' },
       builtIn: false,
     });
     const result = detector.resolve();

@@ -37,7 +37,7 @@ async function loadConversations(): Promise<void> {
         ? `${(r.waterMl / 1000).toFixed(1)} L`
         : `${Math.round(r.waterMl)} mL`;
       row.innerHTML = `
-        <td>${r.topic || '(untitled)'}</td>
+        <td>${r.title || '(untitled)'}</td>
         <td>${r.platform}</td>
         <td>${displayMl}</td>
         <td>${r.tokenCount.toLocaleString()}</td>
@@ -58,7 +58,8 @@ document.getElementById('add-platform-form')!.addEventListener('submit', (e) => 
     urlMatch: data.get('urlMatch') as string,
     selectors: {
       messages: data.get('messages') as string,
-      title: data.get('title') as string,
+      pageTitle: 'title',
+      titleSelector: data.get('title') as string,
       input: data.get('input') as string,
     },
     builtIn: false,
