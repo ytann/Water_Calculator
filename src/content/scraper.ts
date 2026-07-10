@@ -72,12 +72,18 @@ export class DOMScraper implements ITextScraper {
     }
   }
 
+  private getElementText(el: HTMLElement): string {
+    const text = el.textContent || '';
+    const inner = el.innerText || '';
+    return inner.length > text.length ? inner : text;
+  }
+
   private collectAllText(selector: string): string {
     if (!document.body) return '';
     const parts: string[] = [];
     const elements = document.querySelectorAll(selector);
     for (const el of elements) {
-      const text = (el as HTMLElement).innerText || (el as HTMLElement).textContent || '';
+      const text = this.getElementText(el as HTMLElement);
       if (text.trim().length > 0) parts.push(text);
     }
     return parts.join('\n');
