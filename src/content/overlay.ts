@@ -414,6 +414,7 @@ export class WaterBottleOverlay implements IOverlayUI {
         const bounds = this.rowBounds(row);
         if (!bounds) continue;
         for (let col = bounds.left; col <= bounds.right; col++) {
+          if (BOTTLE_GRID[row * GRID_COLS + col] !== 0) continue;
           const x = ox + col * cs;
           const y = oy + row * cs;
           const rowsFromSurface = interiorRows.length - 1 - i;
