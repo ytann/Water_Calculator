@@ -258,9 +258,11 @@ export class WaterBottleOverlay implements IOverlayUI {
 
     this.el.addEventListener('contextmenu', (e) => {
       e.preventDefault();
-      const input = prompt(`Bottle capacity (ml):`, String(this.capacityMl));
-      if (input && /^\d+$/.test(input.trim())) {
-        this.setCapacity(parseInt(input.trim(), 10));
+      const input = prompt(`Bottle capacity (ml, 100-100000):`, String(this.capacityMl));
+      if (!input || !/^\d+$/.test(input.trim())) return;
+      const val = parseInt(input.trim(), 10);
+      if (val >= 100 && val <= 100000) {
+        this.setCapacity(val);
       }
     });
 
@@ -605,7 +607,7 @@ export class WaterBottleOverlay implements IOverlayUI {
   }
 
   setCapacity(ml: number): void {
-    this.capacityMl = Math.max(100, ml);
+    this.capacityMl = Math.max(100, Math.min(100000, ml));
   }
 
   isMounted(): boolean {
