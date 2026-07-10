@@ -11,6 +11,8 @@ export class DOMScraper implements ITextScraper {
   attach(container: Element): void {
     const selector = this.config.selectors.messages;
 
+    this.scanExisting(selector);
+
     this.observer = new MutationObserver((mutations) => {
       for (const mutation of mutations) {
         for (const node of mutation.addedNodes) {
@@ -23,19 +25,13 @@ export class DOMScraper implements ITextScraper {
           for (const msgNode of messageNodes) {
             if (msgNode.hasAttribute(TRACKED_ATTR)) continue;
             msgNode.setAttribute(TRACKED_ATTR, '1');
-
-            const text = (msgNode as HTMLElement).textContent ?? '';
-            if (text.trim().length > 0) {
-              for (const cb of this.callbacks) {
-                cb(text);
-              }
-            }
+            this.fireCallbacks(msgNode as HTMLElement);
           }
         }
       }
     });
 
-    this.observer.observe(container, {
+    this.observer.observe(document.body, {
       childList: true,
       subtree: true,
     });
@@ -52,5 +48,23 @@ export class DOMScraper implements ITextScraper {
       const idx = this.callbacks.indexOf(callback);
       if (idx >= 0) this.callbacks.splice(idx, 1);
     };
+  }
+
+  private scanExisting(selector: string): void {
+    const existing = document.querySelectorAll(selector);
+    for (const el of existing) {
+      if (el.hasAttribute(TRACKED_ATTR)) continue;
+      el.setAttribute(TRACKED_ATTR, '1');
+      this.fireCallbacks(el as HTMLElement);
+    }
+  }
+
+  private fireCallbacks(el: HTMLElement): void {
+    const text = el.textContent ?? '';
+    if (text.trim().length > 0) {
+      for (const cb of this.callbacks) {
+        cb(text);
+      }
+    }
   }
 }

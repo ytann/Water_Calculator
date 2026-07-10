@@ -20,7 +20,15 @@ describe('DOMScraper', () => {
 
   beforeEach(() => {
     container = document.createElement('div');
+    container.id = 'test-container';
     document.body.appendChild(container);
+  });
+
+  afterEach(() => {
+    scraper?.detach();
+    const el = document.getElementById('test-container');
+    if (el) el.remove();
+    document.querySelectorAll('.msg').forEach((e) => e.remove());
   });
 
   it('fires onNewText when a new message node is added', async () => {
@@ -96,11 +104,26 @@ describe('DOMScraper', () => {
 
     const msg = document.createElement('div');
     msg.className = 'msg';
-    msg.textContent = 'Test';
+    msg.textContent = 'Test-unique';
     container.appendChild(msg);
 
-    await delay(50);
+    await delay(150);
     expect(cb1).not.toHaveBeenCalled();
-    expect(cb2).toHaveBeenCalledWith('Test');
+    expect(cb2).toHaveBeenCalledWith('Test-unique');
+  });
+
+  it('scans existing messages on attach', async () => {
+    const existing = document.createElement('div');
+    existing.className = 'msg';
+    existing.textContent = 'Already here';
+    document.body.appendChild(existing);
+
+    scraper = new DOMScraper(config);
+    const callback = vi.fn();
+    scraper.onNewText(callback);
+    scraper.attach(container);
+
+    await delay(50);
+    expect(callback).toHaveBeenCalledWith('Already here');
   });
 });
