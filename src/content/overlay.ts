@@ -258,15 +258,20 @@ export class WaterBottleOverlay implements IOverlayUI {
 
     this.el.addEventListener('contextmenu', (e) => {
       e.preventDefault();
+      console.log('[wc] contextmenu handler fired, frame before prompt:', this.frameCount);
       try {
         const input = prompt(`Bottle capacity (ml, 10-100000):`, String(this.capacityMl));
+        console.log('[wc] prompt returned:', input, 'frame after prompt:', this.frameCount);
         if (!input || !/^\d+$/.test(input.trim())) return;
         const val = parseInt(input.trim(), 10);
         if (val >= 10 && val <= 100000) {
+          console.log('[wc] setCapacity from', this.capacityMl, 'to', val);
+          console.log('[wc] before set: waterMl=', this.waterMl, 'targetWaterMl=', this.targetWaterMl, 'animFrameId=', this.animFrameId);
           this.setCapacity(val);
+          console.log('[wc] after set: waterMl=', this.waterMl, 'targetWaterMl=', this.targetWaterMl, 'animFrameId=', this.animFrameId);
         }
-      } catch {
-        // prompt may fail in some content-script contexts; silently ignore
+      } catch (err) {
+        console.log('[wc] prompt error:', err);
       }
     });
 
@@ -326,6 +331,7 @@ export class WaterBottleOverlay implements IOverlayUI {
       this.animFrameId = requestAnimationFrame(loop);
     };
     this.animFrameId = requestAnimationFrame(loop);
+    console.log('[wc] loop started, animFrameId:', this.animFrameId);
 
     this.healthCheckId = window.setInterval(() => {
       if (this.mounted && this.frameCount - this.lastLoopFrame > 3) {
@@ -405,7 +411,7 @@ export class WaterBottleOverlay implements IOverlayUI {
     ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
     if (this.frameCount % 120 === 0) {
-      console.log('[wc] render frame', this.frameCount, 'waterMl:', this.waterMl.toFixed(1), 'target:', this.targetWaterMl.toFixed(1), 'capacity:', this.capacityMl, 'cellSize:', cs);
+      console.log('[wc] render frame', this.frameCount, 'waterMl:', this.waterMl.toFixed(1), 'target:', this.targetWaterMl.toFixed(1), 'capacity:', this.capacityMl, 'cellSize:', cs, 'animFrameId:', this.animFrameId);
     }
 
     const isRidgeRow = (row: number) => row === 14 || row === 18 || row === 21;
