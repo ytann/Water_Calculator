@@ -405,23 +405,23 @@ export class WaterBottleOverlay implements IOverlayUI {
     }
 
     const interiorRows = this.findInteriorRows();
-    if (interiorRows.length > 0) {
-      const waterFrac = Math.min(this.waterMl / this.capacityMl, 1.0);
-      const filledRows = Math.floor(interiorRows.length * waterFrac);
+    const waterFrac = Math.min(this.waterMl / this.capacityMl, 1);
+    const filledRows = Math.floor(interiorRows.length * waterFrac);
 
-      for (let i = interiorRows.length - 1; i >= interiorRows.length - filledRows; i--) {
-        const row = interiorRows[i];
-        const bounds = this.rowBounds(row);
-        if (!bounds) continue;
-        for (let col = bounds.left; col <= bounds.right; col++) {
-          if (BOTTLE_GRID[row * GRID_COLS + col] !== 0) continue;
-          const x = ox + col * cs;
-          const y = oy + row * cs;
-          const rowsFromSurface = interiorRows.length - 1 - i;
-          ctx.fillStyle = rowsFromSurface <= 2 ? PALETTE.waterSurface : PALETTE.waterMid;
-          ctx.fillRect(x, y, cs, cs);
-        }
+    for (let i = interiorRows.length - 1; i >= interiorRows.length - filledRows; i--) {
+      const row = interiorRows[i];
+      const bounds = this.rowBounds(row);
+      if (!bounds) continue;
+      for (let col = bounds.left; col <= bounds.right; col++) {
+        const x = ox + col * cs;
+        const y = oy + row * cs;
+        const rowsFromBottom = interiorRows.length - 1 - i;
+        ctx.fillStyle = rowsFromBottom <= 2 ? PALETTE.waterSurface : PALETTE.waterMid;
+        ctx.fillRect(x, y, cs, cs);
       }
+    }
+
+    if (interiorRows.length > 0) {
 
       // Shimmer overlay on water — light stripe gliding across
       if (filledRows > 4) {
@@ -508,14 +508,20 @@ export class WaterBottleOverlay implements IOverlayUI {
     const baseIdx = row * GRID_COLS;
     let left = -1;
     let right = -1;
-    for (let col = 0; col < GRID_COLS; col++) {
-      if (BOTTLE_GRID[baseIdx + col] === 1) {
-        if (left === -1) left = col;
-        right = col;
+    for (let col = 1; col < GRID_COLS; col++) {
+      if (BOTTLE_GRID[baseIdx + col] === 0 && BOTTLE_GRID[baseIdx + col - 1] === 1) {
+        left = col;
+        break;
       }
     }
-    if (left === -1 || right === -1) return null;
-    return { left: left + 1, right: right - 1 };
+    for (let col = GRID_COLS - 2; col >= 0; col--) {
+      if (BOTTLE_GRID[baseIdx + col] === 0 && BOTTLE_GRID[baseIdx + col + 1] === 1) {
+        right = col;
+        break;
+      }
+    }
+    if (left === -1 || right === -1 || left > right) return null;
+    return { left, right };
   }
 
   update(ml: number): void {
