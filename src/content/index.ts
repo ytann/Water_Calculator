@@ -8,6 +8,8 @@ import { IndexedDBStore } from '../shared/db';
 import { DEFAULT_PLATFORMS } from '../shared/constants';
 import type { PlatformConfig } from '../shared/types';
 
+console.warn("[wc] executing", document.URL);
+
 class WaterCalculator {
   private store = new IndexedDBStore();
   private overlay = new WaterBottleOverlay();
