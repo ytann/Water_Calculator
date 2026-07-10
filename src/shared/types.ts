@@ -1,6 +1,7 @@
 export interface PlatformSelectors {
   messages: string;
-  title: string;
+  pageTitle: string;
+  titleSelector: string;
   input: string;
 }
 
@@ -16,7 +17,7 @@ export interface ConversationRecord {
   id: string;
   url: string;
   platform: string;
-  topic: string;
+  title: string;
   waterMl: number;
   tokenCount: number;
   startedAt: string;
@@ -40,6 +41,7 @@ export interface ITextScraper {
   detach(): void;
   onNewText(callback: (delta: string) => void): () => void;
   getCurrentText(): string;
+  getTitle(): string;
 }
 
 export interface ITokenEstimator {
@@ -62,20 +64,21 @@ export interface IOverlayUI {
 export interface AddDeltaParams {
   ml: number;
   tokens: number;
-  topic?: string;
+  title?: string;
 }
 
 export interface IConversationTracker {
-  start(url: string, platform: string): Promise<ConversationRecord>;
-  resume(url: string): Promise<ConversationRecord | null>;
+  start(title: string, platform: string): Promise<ConversationRecord>;
+  resume(title: string): Promise<ConversationRecord | null>;
   addDelta(params: AddDeltaParams): Promise<void>;
+  updateTitle(title: string): Promise<void>;
   getCurrent(): ConversationRecord | null;
 }
 
 export interface IConversationStore {
   create(record: ConversationRecord): Promise<void>;
-  update(id: string, fields: Partial<Pick<ConversationRecord, 'waterMl' | 'tokenCount' | 'topic' | 'updatedAt'>>): Promise<void>;
-  findByUrl(url: string): Promise<ConversationRecord | null>;
+  update(id: string, fields: Partial<Pick<ConversationRecord, 'waterMl' | 'tokenCount' | 'title' | 'updatedAt'>>): Promise<void>;
+  findByTitle(title: string, platform: string): Promise<ConversationRecord | null>;
   findAll(): Promise<ConversationRecord[]>;
   delete(id: string): Promise<void>;
 }
