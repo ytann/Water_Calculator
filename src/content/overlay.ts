@@ -256,6 +256,14 @@ export class WaterBottleOverlay implements IOverlayUI {
     minimizeBtn.addEventListener('click', () => this.toggleMinimize());
     closeBtn.addEventListener('click', () => this.unmount());
 
+    this.el.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      const input = prompt(`Bottle capacity (ml):`, String(this.capacityMl));
+      if (input && /^\d+$/.test(input.trim())) {
+        this.setCapacity(parseInt(input.trim(), 10));
+      }
+    });
+
     const minimizedIcon = this.el.querySelector('.wc-minimized-icon') as HTMLElement;
     minimizedIcon.addEventListener('click', (e) => {
       e.stopPropagation();
