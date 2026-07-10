@@ -1,5 +1,7 @@
 import type { ConversationRecord, IConversationStore, IOverlayUI, IConversationTracker, AddDeltaParams } from '../shared/types';
 
+const MAX_WATER_ML = 9_999_000; // 9999L cap
+
 export class ConversationTracker implements IConversationTracker {
   private current: ConversationRecord | null = null;
 
@@ -37,7 +39,7 @@ export class ConversationTracker implements IConversationTracker {
   async addDelta(params: AddDeltaParams): Promise<void> {
     if (!this.current) return;
 
-    this.current.waterMl += params.ml;
+    this.current.waterMl = Math.min(this.current.waterMl + params.ml, MAX_WATER_ML);
     this.current.tokenCount += params.tokens;
     this.current.updatedAt = new Date().toISOString();
     if (params.topic !== undefined) {
