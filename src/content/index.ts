@@ -17,16 +17,56 @@ class WaterCalculator {
   private detector: PlatformDetector;
   private scraper: DOMScraper | null = null;
   private config: PlatformConfig | null = null;
+  private initialized = false;
+  private initDelay = 1000;
 
   constructor() {
     this.detector = new PlatformDetector(DEFAULT_PLATFORMS);
   }
 
   async init(): Promise<void> {
-    this.config = this.detector.resolve();
-    if (!this.config) return;
-
     this.overlay.mount();
+    this.setupLifecycleListeners();
+
+    this.config = this.detector.resolve();
+
+    if (!this.config) {
+      this.overlay.setState('idle');
+      this.overlay.update(0);
+      this.watchForPlatform();
+      return;
+    }
+
+    await this.startTracking();
+  }
+
+  private watchForPlatform(): void {
+    const observer = new MutationObserver(() => {
+      if (this.config) {
+        observer.disconnect();
+        return;
+      }
+      const detected = this.detector.resolve();
+      if (detected) {
+        this.config = detected;
+        observer.disconnect();
+        this.startTracking();
+      }
+    });
+
+    observer.observe(document.documentElement, {
+      childList: true,
+      subtree: true,
+    });
+
+    setTimeout(() => {
+      observer.disconnect();
+    }, 30000);
+  }
+
+  private async startTracking(): Promise<void> {
+    if (!this.config || this.initialized) return;
+    this.initialized = true;
 
     const url = window.location.href;
     let record = await this.tracker.resume(url);
@@ -40,6 +80,8 @@ class WaterCalculator {
       await this.tracker.addDelta({ ml: 0, tokens: 0, topic: title });
     }
 
+    this.overlay.setState('active');
+
     this.scraper = new DOMScraper(this.config);
     this.scraper.onNewText((delta) => {
       const tokens = this.estimator.estimate(delta);
@@ -51,8 +93,6 @@ class WaterCalculator {
     if (container) {
       this.scraper.attach(container);
     }
-
-    this.setupLifecycleListeners();
   }
 
   private scrapeTitle(): string {
