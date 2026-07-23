@@ -1,0 +1,11 @@
+{
+  "name": "@token-wuer/pi",
+  "version": "0.1.0",
+  "description": "Token-WUEr MCP server for Pi coding agent — tracks token usage as water consumption",
+  "type": "module",
+  "bin": {
+    "token-wuer-pi": "./cli.js"
+  },
+  "files": ["cli.js", "skill.md"],
+  "license": "MIT"
+}

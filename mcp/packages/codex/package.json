@@ -1,0 +1,11 @@
+{
+  "name": "@token-wuer/codex",
+  "version": "0.1.0",
+  "description": "Token-WUEr MCP server for Codex — tracks token usage as water consumption",
+  "type": "module",
+  "bin": {
+    "token-wuer-codex": "./cli.js"
+  },
+  "files": ["cli.js", "skill.md"],
+  "license": "MIT"
+}
