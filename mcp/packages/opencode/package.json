@@ -1,0 +1,11 @@
+{
+  "name": "@token-wuer/opencode",
+  "version": "0.1.0",
+  "description": "Token-WUEr MCP server for OpenCode — tracks token usage as water consumption",
+  "type": "module",
+  "bin": {
+    "token-wuer-opencode": "./cli.js"
+  },
+  "files": ["cli.js", "skill.md"],
+  "license": "MIT"
+}

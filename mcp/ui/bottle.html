@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Token-WUEr Bottle</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0a1628;
+    display: flex; justify-content: center; align-items: center;
+    min-height: 100vh; font-family: 'Courier New', monospace;
+    overflow: hidden;
+  }
+  .container {
+    display: flex; flex-direction: column; align-items: center; gap: 12px;
+  }
+  canvas {
+    image-rendering: pixelated;
+  }
+  .counter {
+    color: #85c1e9; font-size: 14px; font-weight: bold;
+    text-align: center; white-space: nowrap;
+  }
+  .controls {
+    display: flex; gap: 8px; align-items: center;
+  }
+  .controls label { color: #5b9ec4; font-size: 11px; }
+  .controls input {
+    background: #162d40; border: 1px solid #3a6b8c; border-radius: 4px;
+    color: #85c1e9; padding: 4px 8px; font-family: inherit; font-size: 12px; width: 80px;
+    outline: none;
+  }
+  .controls button {
+    background: #3a6b8c; border: none; border-radius: 4px;
+    color: #e0f0ff; padding: 4px 10px; font-family: inherit; font-size: 11px; cursor: pointer;
+  }
+  .controls button:hover { background: #5b9ec4; }
+  .project-name {
+    color: #8ec8e8; font-size: 11px; opacity: 0.6;
+    position: absolute; bottom: 24px;
+  }
+  .nav {
+    position: absolute; top: 16px; display: flex; gap: 8px;
+  }
+  .nav a {
+    color: #5b9ec4; text-decoration: none; font-size: 11px;
+    padding: 4px 12px; border: 1px solid #3a6b8c; border-radius: 4px;
+  }
+  .nav a:hover { background: #162d40; color: #85c1e9; }
+</style>
+</head>
+<body>
+<div class="nav">
+  <a href="/">Dashboard</a>
+  <a href="/bottle" style="background:#162d40;color:#85c1e9;">Bottle</a>
+</div>
+
+<div class="container">
+  <canvas id="bottle" width="96" height="120"></canvas>
+  <div class="counter" id="counter">0.0 ml</div>
+  <div class="controls">
+    <label>Capacity:</label>
+    <input type="number" id="capacity" value="1000" min="10" max="100000" step="100">
+    <button id="set-capacity">Set</button>
+  </div>
+</div>
+<div class="project-name" id="project-name"></div>
+
+<script>
+const GRID_COLS = 16, GRID_ROWS = 28;
+
+const BOTTLE_GRID = new Uint8Array([
+  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+  0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,
+  0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,
+  0,0,0,0,0,1,1,0,0,1,1,0,0,0,0,0,
+  0,0,0,0,0,0,1,0,0,1,0,0,0,0,0,0,
+  0,0,0,0,0,0,1,0,0,1,0,0,0,0,0,0,
+  0,0,0,0,0,0,1,0,0,1,0,0,0,0,0,0,
+  0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,
+  0,0,0,0,0,0,1,0,0,1,0,0,0,0,0,0,
+  0,0,0,0,0,1,0,0,0,0,1,0,0,0,0,0,
+  0,0,0,0,0,1,0,0,0,0,1,0,0,0,0,0,
+  0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0,
+  0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0,
+  0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0,
+  0,0,0,0,0,1,0,0,0,0,1,0,0,0,0,0,
+  0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0,
+  0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0,
+  0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0,
+  0,0,0,0,0,1,0,0,0,0,1,0,0,0,0,0,
+  0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0,
+  0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0,
+  0,0,0,0,0,1,0,0,0,0,1,0,0,0,0,0,
+  0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0,
+  0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0,
+  0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,
+  0,0,0,0,0,1,1,0,0,1,1,0,0,0,0,0,
+  0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,
+  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+]);
+
+const P = {
+  cap: '#2d5a7a', outline: '#3a6b8c', fill: '#5b9ec4',
+  highlight: '#8ec8e8', ridge: '#4a8ab0',
+  waterDeep: '#0d3b5e', waterMid: '#1565a0', surface: '#2196f3',
+  foam: '#64b5f6', shimmer: '#90caf9', drop: '#42a5f5', puddle: '#1565a0',
+};
+
+const canvas = document.getElementById('bottle');
+const ctx = canvas.getContext('2d');
+const counterEl = document.getElementById('counter');
+const projectEl = document.getElementById('project-name');
+const capacityInput = document.getElementById('capacity');
+
+let waterMl = 0, targetWaterMl = 0, capacityMl = 1000;
+let frameCount = 0, corkOffsetY = 0;
+let bubbles = [], waterDrops = [];
+let cellSize = 4, canvasW = 96, canvasH = 120, ox = 0, oy = 0;
+
+function computeMetrics() {
+  canvasW = canvas.width; canvasH = canvas.height;
+  cellSize = Math.floor(Math.min(canvasW / GRID_COLS, canvasH / GRID_ROWS));
+  ox = Math.floor((canvasW - cellSize * GRID_COLS) / 2);
+  oy = Math.floor((canvasH - cellSize * GRID_ROWS) / 2);
+}
+
+function findInteriorRows() {
+  const rows = [];
+  for (let row = 3; row < GRID_ROWS - 1; row++) {
+    const baseIdx = row * GRID_COLS;
+    const leftWall = Array.from(BOTTLE_GRID.slice(baseIdx, baseIdx + 8)).lastIndexOf(1);
+    const rightWall = Array.from(BOTTLE_GRID.slice(baseIdx + 8, baseIdx + GRID_COLS)).indexOf(1);
+    if (leftWall >= 0 && rightWall >= 0) {
+      const midCol = 8 + rightWall - 1;
+      if (BOTTLE_GRID[baseIdx + midCol] === 0) rows.push(row);
+    }
+  }
+  return rows;
+}
+
+function rowBounds(row) {
+  const baseIdx = row * GRID_COLS;
+  let left = -1, right = -1;
+  for (let col = 1; col < GRID_COLS; col++) {
+    if (BOTTLE_GRID[baseIdx + col] === 0 && BOTTLE_GRID[baseIdx + col - 1] === 1) { left = col; break; }
+  }
+  for (let col = GRID_COLS - 2; col >= 0; col--) {
+    if (BOTTLE_GRID[baseIdx + col] === 0 && BOTTLE_GRID[baseIdx + col + 1] === 1) { right = col; break; }
+  }
+  if (left === -1 || right === -1 || left > right) return null;
+  return { left, right };
+}
+
+function render() {
+  if (!ctx) return;
+  ctx.clearRect(0, 0, canvasW, canvasH);
+  const cs = cellSize;
+
+  for (let row = 0; row < GRID_ROWS; row++) {
+    for (let col = 0; col < GRID_COLS; col++) {
+      const idx = row * GRID_COLS + col;
+      const cell = BOTTLE_GRID[idx];
+      if (cell !== 1) continue;
+      const x = ox + col * cs;
+      const y = oy + row * cs + (row <= 2 ? corkOffsetY : 0);
+      if (row <= 2) ctx.fillStyle = P.cap;
+      else if (row === 14 || row === 18 || row === 21) ctx.fillStyle = P.ridge;
+      else if (col <= 3) ctx.fillStyle = P.highlight;
+      else ctx.fillStyle = P.fill;
+      ctx.fillRect(x, y, cs, cs);
+      ctx.fillStyle = P.outline;
+      ctx.fillRect(x, y, cs, 1);
+      if (col <= 3 || col >= 12) ctx.fillRect(col <= 3 ? x : x + cs - 1, y, 1, cs);
+    }
+  }
+
+  const interiorRows = findInteriorRows();
+  const waterFrac = Math.min(waterMl / capacityMl, 1);
+  const filledRows = waterMl > 0 ? Math.max(1, Math.floor(interiorRows.length * waterFrac)) : 0;
+
+  for (let i = interiorRows.length - 1; i >= interiorRows.length - filledRows; i--) {
+    const row = interiorRows[i];
+    const bounds = rowBounds(row);
+    if (!bounds) continue;
+    const rowsFromBottom = interiorRows.length - 1 - i;
+    const [br, bg, bb] = rowsFromBottom <= 2 ? [33, 150, 243] : [21, 101, 160];
+    const drift = frameCount * 0.03;
+    for (let col = bounds.left; col <= bounds.right; col++) {
+      const x = ox + col * cs, y = oy + row * cs;
+      const seed = row * 73 + col * 47;
+      const glint = Math.sin(seed * 5.7 + frameCount * 0.12) * 8;
+      const r = br + Math.round(Math.sin(seed * 1.7 + drift) * 14 + glint);
+      const g = bg + Math.round(Math.sin(seed * 2.3 + drift + 2.1) * 18 + glint);
+      const b = bb + Math.round(Math.sin(seed * 1.3 + drift + 4.2) * 20 + glint * 0.7);
+      ctx.fillStyle = `rgb(${r},${g},${b})`;
+      ctx.fillRect(x, y, cs, cs);
+    }
+  }
+
+  if (filledRows > 0 && filledRows <= interiorRows.length) {
+    const surfaceRow = interiorRows[interiorRows.length - 1 - filledRows];
+    const bounds = rowBounds(surfaceRow);
+    if (bounds) {
+      const waveOffset = Math.floor(Math.sin(frameCount * 0.15) * 2);
+      for (let col = bounds.left; col <= bounds.right; col++) {
+        if ((col + waveOffset) % 4 < 2) {
+          ctx.fillStyle = P.foam;
+          ctx.fillRect(ox + col * cs, oy + surfaceRow * cs, cs, cs);
+        }
+      }
+    }
+  }
+
+  for (const b of bubbles) {
+    ctx.globalAlpha = Math.max(0, b.opacity);
+    ctx.fillStyle = P.foam;
+    ctx.fillRect(ox + b.x * cs, oy + b.y * cs, cs, cs);
+    ctx.globalAlpha = 1;
+  }
+
+  for (const d of waterDrops) {
+    ctx.globalAlpha = Math.max(0, d.opacity);
+    ctx.fillStyle = P.drop;
+    ctx.fillRect(ox + d.x * cs, oy + d.y * cs, cs * 0.5, cs);
+    ctx.globalAlpha = 1;
+  }
+
+  if (waterMl > capacityMl) {
+    const overflowMl = waterMl - capacityMl;
+    const pw = Math.min(6, 2 + Math.floor(overflowMl / 200));
+    const drift = frameCount * 0.05;
+    const center = GRID_COLS / 2, half = Math.floor(pw / 2);
+    for (let col = center - half - 1; col <= center + half; col++) {
+      const seed = col * 73 + (GRID_ROWS - 1) * 97;
+      const r = 10 + Math.round(Math.sin(seed * 0.9 + drift) * 20);
+      const g = 65 + Math.round(Math.sin(seed * 0.7 + drift + 2.1) * 35);
+      const b = 120 + Math.round(Math.sin(seed * 0.5 + drift + 4.2) * 50);
+      ctx.fillStyle = `rgb(${r},${g},${b})`;
+      ctx.fillRect(ox + col * cs, oy + (GRID_ROWS - 1) * cs, cs, cs * 0.5);
+    }
+    for (let col = 3; col < 6; col++) {
+      ctx.fillStyle = P.puddle;
+      ctx.fillRect(ox + col * cs, oy + 26 * cs, cs, cs * 0.3);
+    }
+    for (let col = 10; col <= 12; col++) {
+      ctx.fillStyle = P.puddle;
+      ctx.fillRect(ox + col * cs, oy + 26 * cs, cs, cs * 0.3);
+    }
+  }
+}
+
+function updateAnimations() {
+  if (Math.abs(waterMl - targetWaterMl) > 0.5) {
+    waterMl += (targetWaterMl - waterMl) * 0.15;
+  } else {
+    waterMl = targetWaterMl;
+  }
+  if (waterMl >= capacityMl * 0.95) {
+    const pf = Math.min(1, (waterMl - capacityMl * 0.95) / (capacityMl * 0.05));
+    corkOffsetY = -pf * cellSize * 4;
+  } else { corkOffsetY = 0; }
+  if (waterMl > capacityMl && frameCount % 12 === 0) {
+    waterDrops.push({ x: 6 + Math.random() * 4, y: 3, vy: 0.4 + Math.random() * 0.6, opacity: 0.9 });
+  }
+  for (const d of waterDrops) { d.y += d.vy; d.vy += 0.03; if (d.y > GRID_ROWS - 1) d.opacity -= 0.1; }
+  waterDrops = waterDrops.filter(d => d.opacity > 0);
+  if (frameCount % 2 === 0) {
+    bubbles = bubbles.filter(b => b.opacity > 0);
+    for (const b of bubbles) { b.y -= 1; b.opacity -= 0.05; b.x += Math.sin(frameCount * 0.3 + b.y) * 0.3; }
+  }
+}
+
+function addBubbles(count) {
+  const bot = findInteriorRows();
+  const lowestRow = bot[bot.length - 1];
+  for (let i = 0; i < count; i++) {
+    bubbles.push({ x: 3 + Math.random() * 8, y: lowestRow - 2 - Math.random() * 4, opacity: 0.8 + Math.random() * 0.2 });
+  }
+}
+
+let lastMl = 0;
+
+async function poll() {
+  try {
+    const res = await fetch('/api/current');
+    const data = await res.json();
+    if (data.totals && data.totals.waterMl !== lastMl) {
+      lastMl = data.totals.waterMl;
+      targetWaterMl = data.totals.waterMl;
+      if (data.totals.waterMl > waterMl) addBubbles(4);
+      if (data.project) projectEl.textContent = data.project + (data.platform ? ' / ' + data.platform : '');
+    }
+    const ml = targetWaterMl;
+    if (ml >= 1000) counterEl.textContent = '\u{1F4A7} ' + (ml / 1000).toFixed(1) + ' L';
+    else counterEl.textContent = '\u{1F4A7} ' + ml.toFixed(1) + ' ml';
+  } catch { /* server not ready yet */ }
+}
+
+document.getElementById('set-capacity').addEventListener('click', () => {
+  const val = parseInt(capacityInput.value, 10);
+  if (val >= 10 && val <= 100000) capacityMl = val;
+});
+
+computeMetrics();
+setInterval(() => { frameCount++; updateAnimations(); render(); }, 16);
+setInterval(poll, 1000);
+poll();
+</script>
+</body>
+</html>
