@@ -82,7 +82,7 @@ class WaterCalculator {
     this.initialized = true;
 
     const title = this.scrapeTitle();
-    let record = title ? await this.tracker.resume(title) : null;
+    let record = title ? await this.tracker.resume(title, this.config!.id) : null;
 
     if (!record) {
       record = await this.tracker.start(title || 'Untitled', this.config.id);
@@ -156,7 +156,7 @@ class WaterCalculator {
 
     const title = this.scrapeTitle();
     if (title) {
-      const record = await this.tracker.resume(title);
+      const record = await this.tracker.resume(title, this.config!.id);
       if (record) {
         this.overlay.update(record.waterMl);
         this.overlay.setState('active');

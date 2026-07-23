@@ -72,7 +72,7 @@ export interface AddDeltaParams {
 
 export interface IConversationTracker {
   start(title: string, platform: string): Promise<ConversationRecord>;
-  resume(title: string): Promise<ConversationRecord | null>;
+  resume(title: string, platform?: string): Promise<ConversationRecord | null>;
   addDelta(params: AddDeltaParams): Promise<void>;
   updateTitle(title: string): Promise<void>;
   getCurrent(): ConversationRecord | null;

@@ -27,9 +27,10 @@ export class ConversationTracker implements IConversationTracker {
     return record;
   }
 
-  async resume(title: string): Promise<ConversationRecord | null> {
-    if (!this.current) return null;
-    const record = await this.store.findByTitle(title, this.current.platform);
+  async resume(title: string, platform?: string): Promise<ConversationRecord | null> {
+    const searchPlatform = this.current?.platform ?? platform;
+    if (!searchPlatform) return null;
+    const record = await this.store.findByTitle(title, searchPlatform);
     if (record) {
       this.current = record;
       this.current.url = window.location.href;
