@@ -6,7 +6,7 @@ import { WaterBottleOverlay } from './overlay';
 import { ConversationTracker } from './tracker';
 import { IndexedDBStore } from '../shared/db';
 import { DEFAULT_PLATFORMS } from '../shared/constants';
-import type { PlatformConfig } from '../shared/types';
+import type { PlatformConfig, ConversationRecord } from '../shared/types';
 
 console.warn("[wc] executing", document.URL);
 
@@ -96,8 +96,14 @@ class WaterCalculator {
 
     this.estimator.setMultiplier(this.config.tokenMultiplier);
     this.scraper = new DOMScraper(this.config);
-    this.estimator.reset();
     this.attachScraperCallback();
+
+    if (record.tokenCount > 0) {
+      this.estimator.setLastCount(record.tokenCount);
+    } else {
+      this.estimator.reset();
+    }
+
     this.scraper.attach(document.body);
     console.log('[wc] scraper attached, platform:', this.config.id);
   }
@@ -155,25 +161,31 @@ class WaterCalculator {
     this.initialized = false;
 
     const title = this.scrapeTitle();
+    let record: ConversationRecord | null = null;
+
     if (title) {
-      const record = await this.tracker.resume(title, this.config!.id);
+      record = await this.tracker.resume(title, this.config!.id);
       if (record) {
         this.overlay.update(record.waterMl);
         this.overlay.setState('active');
       } else {
         if (!this.config) return;
-        await this.tracker.start(title, this.config.id);
+        record = await this.tracker.start(title, this.config.id);
         this.overlay.update(0);
       }
     } else {
       if (!this.config) return;
-      await this.tracker.start('Untitled', this.config.id);
+      record = await this.tracker.start('Untitled', this.config.id);
       this.overlay.update(0);
     }
 
     if (this.config) {
       this.scraper = new DOMScraper(this.config);
-      this.estimator.reset();
+      if (record && record.tokenCount > 0) {
+        this.estimator.setLastCount(record.tokenCount);
+      } else {
+        this.estimator.reset();
+      }
       this.attachScraperCallback();
       this.scraper.attach(document.body);
       this.initialized = true;

@@ -39,38 +39,13 @@ src/
 
 ## Conventions
 
-- Debug logs are removed from source **unless intentional diagnostics.** Five `[wc]` log lines currently exist to diagnose a known injection-reliability issue (see Gotchas). Do not add more without a specific, documented reason.
+- Debug logs are removed from source **unless intentional diagnostics.** Five `[wc]` log lines exist to diagnose content script lifecycle. Do not add more without a specific, documented reason.
 - Test files under `tests/` mirror `src/` structure.
 - Overlay tests only check DOM/mounting behavior - Canvas 2D is not supported in jsdom. Stderr about `getContext` is expected and harmless.
 - `vitest.setup.ts` provides `chrome.storage.local` mock (in-memory) and a Canvas 2D context mock.
 - The storage class is named `IndexedDBStore` but wraps `chrome.storage.local` — do not reintroduce IndexedDB or `fake-indexeddb`.
 
 ## Gotchas
-
-### Content script injection (Gemini) — WIP
-
-The content script intermittently fails to execute on `gemini.google.com`. When it fails, zero `[wc]` log lines appear — the script never ran.
-
-**Root cause:** The 2MB static bundle (gpt-tokenizer BPE tables) causes Chrome to skip or defer injection on Gemini's heavy Angular SPA. Vite hoists all imports before top-level code, so `[wc] executing` doesn't fire until after the full bundle is parsed — making injection failures silent.
-
-**Attempted fix (reverted):** Dynamic `import('gpt-tokenizer')` shrunk content.js from 2MB to 23kB, but Chrome MV3 content scripts fail to resolve dynamic import paths at runtime.
-
-**Workaround:** Reload the extension in `chrome://extensions`, hard-refresh the page. Usually resolves it.
-
-**Future:** Lighter estimator (char-based heuristic) or `chrome.scripting.executeScript` fallback injection.
-
-Diagnostics in order of execution:
-
-| Log line | What it means |
-|----------|--------------|
-| `[wc] executing` | Script loaded (first line) |
-| `[wc] overlay mounted, loop started` | Canvas + setInterval loop alive |
-| `[wc] scraper attached, platform: X` | Observer + polling started |
-| `[wc] content script loaded, starting init` | About to call init() |
-| `[wc] init error:` | init() rejected |
-
-If `executing` doesn't appear: Chrome didn't inject. Try reloading the extension or hard-refreshing the page.
-If `executing` appears but nothing after: crash in intermediary code.
 
 ### Conversation tracker
 
@@ -79,7 +54,8 @@ If `executing` appears but nothing after: crash in intermediary code.
 
 ### Token estimation
 
-- `BPEstimator` re-tokenizes the **full accumulated text** every `estimate()` call and returns only the **net diff** (`total - lastTokenCount`). This prevents double-counting when ChatGPT rewrites its DOM during streaming.
+- `BPEstimator` uses a char-based heuristic (`text.length / 4`) instead of BPE tokenization. This keeps content.js at ~22KB, eliminating the 2MB injection-reliability issues that plagued the previous `gpt-tokenizer`-based estimator.
+- Re-estimates the **full accumulated text** every `estimate()` call and returns only the **net diff** (`total - lastTokenCount`). This prevents double-counting when ChatGPT rewrites its DOM during streaming.
 - Call `estimator.reset()` when starting a new conversation, or the diff won't reset.
 
 ### Text scraping

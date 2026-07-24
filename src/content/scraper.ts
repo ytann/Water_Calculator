@@ -38,6 +38,10 @@ export class DOMScraper implements ITextScraper {
     this.pollTimer = setInterval(() => {
       this.checkDelta(selector);
     }, 500);
+
+    if (initialText.trim().length > 0) {
+      for (const cb of this.callbacks) cb(initialText);
+    }
   }
 
   detach(): void {

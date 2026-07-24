@@ -49,6 +49,7 @@ export interface ITokenEstimator {
   estimate(text: string): number;
   reset(): void;
   setMultiplier(m: number): void;
+  setLastCount(count: number): void;
 }
 
 export interface IWaterConverter {

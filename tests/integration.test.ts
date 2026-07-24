@@ -110,7 +110,9 @@ describe('integration: detector → scraper → estimator → converter → trac
     const scraper = new DOMScraper(config);
     const container = document.querySelector('.container')!;
 
-    // Register callback with URL guard
+    // Simulate navigating to a new chat BEFORE attach: URL mismatch should discard initial text
+    (window.location as any).href = 'https://test.com/chat/b';
+
     scraper.onNewText((_delta) => {
       const current = tracker.getCurrent();
       if (!current || window.location.href !== current.url) return;
@@ -121,10 +123,7 @@ describe('integration: detector → scraper → estimator → converter → trac
     });
     scraper.attach(container);
 
-    // Simulate navigating to a different chat: change URL before DOM mutates
-    (window.location as any).href = 'https://test.com/chat/b';
-
-    // DOM mutation for Chat B's content arrives (old scraper still observing)
+    // DOM mutation arrives while URL still mismatched
     const msg = document.createElement('div');
     msg.className = 'msg';
     msg.textContent = 'This text should NOT be added to Chat A';
