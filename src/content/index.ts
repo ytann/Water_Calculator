@@ -160,6 +160,8 @@ class WaterCalculator {
     this.scraper?.detach();
     this.initialized = false;
 
+    if (!this.config) return;
+
     const title = this.scrapeTitle();
     let record: ConversationRecord | null = null;
 
