@@ -30,6 +30,7 @@ class WaterCalculator {
   private lastUrl = window.location.href;
 
   async init(): Promise<void> {
+    if (document.getElementById('wc-overlay')) return;
     this.overlay.mount();
     this.setupLifecycleListeners();
 

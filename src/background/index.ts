@@ -7,7 +7,10 @@ let platformConfigs: PlatformConfig[] = [...DEFAULT_PLATFORMS];
 
 chrome.runtime.onInstalled.addListener(() => {
   chrome.storage.local.set({ platforms: platformConfigs });
+  chrome.alarms.create('keepalive', { periodInMinutes: 0.5 });
 });
+
+chrome.alarms.onAlarm.addListener(() => {}); // noop, prevents SW termination
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   switch (message.type) {
