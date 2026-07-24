@@ -25,7 +25,7 @@ src/
   content/index.ts     - Orchestrator: wires all modules, handles SPA nav + lifecycle
   content/detector.ts  - Platform detection by hostname
   content/scraper.ts   - DOM text extraction (MutationObserver + 500ms polling on document.body)
-  content/estimator.ts - Token estimation (gpt-tokenizer with platform-specific multipliers: 1.3x ChatGPT, 1.5x Gemini, 1.4x Claude, 1.5x Perplexity)
+  content/estimator.ts - Token estimation (char-based heuristic, ~4 chars/token, with platform-specific multipliers: 1.3x ChatGPT, 1.5x Gemini, 1.4x Claude, 1.5x Perplexity)
   content/converter.ts - Token → water (ml)
   content/overlay.ts   - WaterBottleOverlay: Canvas 2D pixel-art bottle (16×28 grid, 96×120px canvas)
   content/tracker.ts   - Conversation lifecycle, chrome.storage.local persistence, caps at 9999L

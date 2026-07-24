@@ -95,7 +95,7 @@ It's just you and your data.
 |------|--------|-------------|
 | Detect | `detector.ts` | Matches current hostname to a platform config |
 | Scrape | `scraper.ts` | Extracts assistant text from the DOM via `MutationObserver` + 500ms polling |
-| Estimate | `estimator.ts` | Tokenizes full text with `gpt-tokenizer`, returns diff to prevent double-counting |
+| Estimate | `estimator.ts` | Char-based heuristic (~4 chars/token), returns diff to prevent double-counting |
 | Convert | `converter.ts` | Applies 0.003 ml/token ratio |
 | Display | `overlay.ts` | Animates a Canvas 2D pixel-art bottle, with cork-pop at 95% capacity |
 | Persist | `db.ts` | Saves conversations to `chrome.storage.local` |
@@ -137,7 +137,7 @@ Highlights:
 |----------|-----|
 | DOM scraping over network interception | Won't trigger CSP/ToS violations |
 | Manifest V3, Chrome-first | Latest standard; Brave shares the engine |
-| `gpt-tokenizer` with per-platform multipliers | Accounts for input tokens + tokenizer accuracy per platform (1.3–1.5×) |
+| Char-based heuristic (~4 chars/token) with per-platform multipliers | Accounts for input tokens + tokenizer accuracy per platform (1.3–1.5×) |
 | Re-tokenize full text each delta | Prevents double-counting during DOM rewrites |
 | `setInterval` over `requestAnimationFrame` | Race-free render loop when tab is backgrounded |
 | `chrome.storage.local` over IndexedDB | Survives cache clears; shared across extension contexts |

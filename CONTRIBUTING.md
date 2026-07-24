@@ -48,7 +48,7 @@ src/
 ├── content/index.ts     # Orchestrator (wires modules, SPA nav, lifecycle)
 ├── content/detector.ts  # Platform detection by hostname
 ├── content/scraper.ts   # DOM text extraction
-├── content/estimator.ts # Token estimation (gpt-tokenizer)
+├── content/estimator.ts # Token estimation (char-based heuristic)
 ├── content/converter.ts # Token → water (ml)
 ├── content/overlay.ts   # Canvas 2D pixel-art water bottle
 ├── content/tracker.ts   # Conversation lifecycle, persistence
@@ -60,9 +60,8 @@ src/
 ## Code Conventions
 
 - **No debug logs** in production code unless they're intentional
-  diagnostics. Five `[wc]` log lines exist to diagnose a known
-  injection-reliability issue on Gemini (see Gotchas). Don't add more
-  without a specific reason.
+  diagnostics. Five `[wc]` log lines exist to diagnose content script
+  lifecycle. Don't add more without a specific reason.
 - **Test files** under `tests/` mirror the `src/` directory structure.
 - **No circular imports.** All shared types go through
   `src/shared/types.ts`. All storage access through `src/shared/db.ts`.
@@ -92,17 +91,6 @@ To add a new platform: add a `PlatformConfig` entry to `DEFAULT_PLATFORMS`
 in `src/shared/constants.ts`, test the selectors, and open a PR.
 
 ## Gotchas
-
-### Content script injection (Gemini)
-
-The content script intermittently fails to execute on `gemini.google.com`.
-When it fails, zero `[wc]` log lines appear - the script never ran.
-Mitigation: `run_at` is set to `document_end` (more reliable than
-`document_idle` for heavy SPAs).
-
-If you see `[wc] executing` but nothing after, the script crashed during
-initialization. If you see zero `[wc]` lines, Chrome didn't inject the
-script - reload the extension or hard-refresh the page.
 
 ### Text scraping
 
