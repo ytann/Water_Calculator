@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Token-WUEr · Architecture</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --border: #30363d;
+    --text: #c9d1d9;
+    --muted: #8b949e;
+    --accent: #58a6ff;
+    --green: #3fb950;
+    --orange: #d2991d;
+    --purple: #a371f7;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+  header {
+    text-align: center;
+    padding: 48px 24px 32px;
+    border-bottom: 1px solid var(--border);
+  }
+  header h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    margin-bottom: 8px;
+  }
+  header h1 span { color: var(--accent); }
+  header p {
+    color: var(--muted);
+    font-size: 1.1rem;
+  }
+  main {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 32px 24px 64px;
+  }
+  .badge-row {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin: 24px 0;
+  }
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    border: 1px solid var(--border);
+  }
+  .badge.s { background: rgba(63,185,80,0.12); color: var(--green); border-color: rgba(63,185,80,0.3); }
+  .badge.o { background: rgba(210,153,29,0.12); color: var(--orange); border-color: rgba(210,153,29,0.3); }
+  .badge.p { background: rgba(163,113,247,0.12); color: var(--purple); border-color: rgba(163,113,247,0.3); }
+  section {
+    margin: 48px 0;
+  }
+  section h2 {
+    font-size: 1.3rem;
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .mermaid-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 24px;
+    overflow-x: auto;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 16px;
+  }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+  }
+  .card h3 {
+    font-size: 0.95rem;
+    margin-bottom: 6px;
+  }
+  .card h3 .dot {
+    display: inline-block;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    margin-right: 6px;
+    vertical-align: middle;
+  }
+  .card .file {
+    color: var(--muted);
+    font-size: 0.8rem;
+    font-family: 'SFMono-Regular', Consolas, monospace;
+    margin-bottom: 8px;
+  }
+  .card p {
+    color: var(--muted);
+    font-size: 0.9rem;
+  }
+  .stack-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 20px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-top: 16px;
+  }
+  .stack-row .layer {
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 600;
+  }
+  .stack-row .arr { color: var(--muted); font-size: 1.2rem; }
+  .l1 { background: rgba(88,166,255,0.12); color: var(--accent); }
+  .l2 { background: rgba(63,185,80,0.12); color: var(--green); }
+  .l3 { background: rgba(210,153,29,0.12); color: var(--orange); }
+  .l4 { background: rgba(163,113,247,0.12); color: var(--purple); }
+
+  footer {
+    text-align: center;
+    padding: 32px;
+    color: var(--muted);
+    font-size: 0.85rem;
+    border-top: 1px solid var(--border);
+    margin-top: 48px;
+  }
+  footer a { color: var(--accent); text-decoration: none; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Token-<span>WUEr</span> Architecture</h1>
+  <p>Chrome extension that tracks water consumption from LLM API usage</p>
+  <div class="badge-row">
+    <span class="badge s">Manifest V3</span>
+    <span class="badge o">TypeScript</span>
+    <span class="badge p">Canvas 2D</span>
+    <span class="badge s">chrome.storage.local</span>
+    <span class="badge o">22 KB bundle</span>
+    <span class="badge p">4 platforms</span>
+  </div>
+</header>
+
+<main>
+  <section>
+    <h2>Data Pipeline</h2>
+    <div class="stack-row">
+      <span class="layer l1">Content Script</span><span class="arr">→</span>
+      <span class="layer l2">DOM Scraping</span><span class="arr">→</span>
+      <span class="layer l3">Token Estimation</span><span class="arr">→</span>
+      <span class="layer l4">Persistence + Display</span>
+    </div>
+    <div class="mermaid-wrap" style="margin-top:24px">
+      <div class="mermaid">
+flowchart TD
+  CS(["Content Script injected<br/>chatgpt / gemini / claude / perplexity"])
+
+  CS --> INIT
+
+  subgraph INIT["Init"]
+    direction LR
+    MOUNT["overlay.mount()"] --> DETECT["detector.resolve()"]
+    DETECT -->|no element yet| WATCH["watchForPlatform() 30s"]
+    WATCH -->|element appears| DETECT
+    DETECT -->|found| TITLE["scrapeTitle()"]
+  end
+
+  TITLE --> TRACK
+
+  subgraph TRACK["Tracker"]
+    direction TB
+    T{"resume(title)?"}
+    T -->|found| LOAD["Load saved waterMl<br/>estimator.setLastCount(tokenCount)"]
+    T -->|not found| START["tracker.start()<br/>estimator.reset()"]
+  end
+
+  LOAD --> SCRAPE
+  START --> SCRAPE
+
+  subgraph SCRAPE["DOMScraper"]
+    direction LR
+    ATTACH["attach( )<br/>collectAllText baseline<br/>fire initial-text callback"]
+    OBSERVE["MutationObserver<br/>+ 500ms polling"]
+    ATTACH --> OBSERVE
+    OBSERVE --> CHK{"text changed?"}
+    CHK -->|yes| CB["onNewText( delta )"]
+    CHK -->|no| OBSERVE
+  end
+
+  CB --> PIPE
+
+  subgraph PIPE["Token → Water Pipeline"]
+    direction TB
+    GUARD{"href === current.url?"} -->|no| DROP["Discard (SPA nav)"]
+    GUARD -->|yes| GET["getCurrentText( )"]
+    GET --> EST["estimate( )<br/>chars/4 × multiplier<br/>delta = total − lastTokenCount"]
+    EST --> CONV["toMl( )<br/>tokens × 0.003"]
+    CONV --> ADD["addDelta( ml, tokens )<br/>waterMl += ml"]
+  end
+
+  ADD --> STORE["store.update( )<br/>chrome.storage.local"]
+  ADD --> DISP["overlay.update( )<br/>Canvas animation 16ms loop"]
+
+  DISP --> BOTTLE["16×28 pixel bottle<br/>per-cell shimmer<br/>cork pop at 95%<br/>auto ml/L switch"]
+
+  DCLICK["double-click overlay"]
+  DCLICK --> BG["background/index.ts<br/>Service worker"]
+  BG --> DB["dashboard/index.ts<br/>Standalone page"]
+  DB --> FIND["store.findAll( )"]
+  FIND --> CHARTS["Donut + Bar charts<br/>Equivalents"]
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Modules</h2>
+    <div class="grid">
+
+      <div class="card">
+        <h3><span class="dot" style="background:var(--accent)"></span>Platform Detector</h3>
+        <div class="file">src/content/detector.ts</div>
+        <p>Matches hostname to platform config. Falls back to MutationObserver-watch when the chat container hasn't rendered yet.</p>
+      </div>
+
+      <div class="card">
+        <h3><span class="dot" style="background:var(--green)"></span>DOM Scraper</h3>
+        <div class="file">src/content/scraper.ts</div>
+        <p>Extracts assistant text via MutationObserver + 500ms polling. innerText for Gemini, textContent for ChatGPT. Fires initial-text callbacks for existing DOM content.</p>
+      </div>
+
+      <div class="card">
+        <h3><span class="dot" style="background:var(--orange)"></span>Token Estimator</h3>
+        <div class="file">src/content/estimator.ts</div>
+        <p>Char-based heuristic (~4 chars/token) with per-platform multipliers (1.3× ChatGPT, 1.5× Gemini, 1.4× Claude, 1.5× Perplexity). Returns diff from lastTokenCount to prevent double-counting.</p>
+      </div>
+
+      <div class="card">
+        <h3><span class="dot" style="background:var(--purple)"></span>Water Converter</h3>
+        <div class="file">src/content/converter.ts</div>
+        <p>Fixed ratio: 0.003 ml per token. Based on published literature for LLM inference water consumption.</p>
+      </div>
+
+      <div class="card">
+        <h3><span class="dot" style="background:var(--accent)"></span>Bottle Overlay</h3>
+        <div class="file">src/content/overlay.ts</div>
+        <p>Canvas 2D pixel-art water bottle (16×28 grid). setInterval 16ms render loop. Per-cell water shimmer, cork pop animation at 95% capacity, right-click capacity setting.</p>
+      </div>
+
+      <div class="card">
+        <h3><span class="dot" style="background:var(--green)"></span>Conversation Tracker</h3>
+        <div class="file">src/content/tracker.ts</div>
+        <p>Manages conversation lifecycle: start, resume (by title + platform), addDelta. Caps at 9,999L. Persists to chrome.storage.local on every delta.</p>
+      </div>
+
+      <div class="card">
+        <h3><span class="dot" style="background:var(--orange)"></span>Storage</h3>
+        <div class="file">src/shared/db.ts</div>
+        <p>chrome.storage.local wrapper (class named IndexedDBStore for historical reasons). CRUD operations for ConversationRecords. Shared across all extension contexts.</p>
+      </div>
+
+      <div class="card">
+        <h3><span class="dot" style="background:var(--purple)"></span>Dashboard</h3>
+        <div class="file">src/dashboard/</div>
+        <p>Standalone page (separate Vite build). Opens on bottle double-click. Donut chart by platform, bar chart by date, topic categorizer, human-day equivalents.</p>
+      </div>
+
+      <div class="card">
+        <h3><span class="dot" style="background:var(--accent)"></span>Orchestrator</h3>
+        <div class="file">src/content/index.ts</div>
+        <p>WaterCalculator class wires all modules together. Handles SPA navigation (history monkey-patching + URL polling), tab visibility lifecycle, and callback URL guards.</p>
+      </div>
+
+      <div class="card">
+        <h3><span class="dot" style="background:var(--green)"></span>Service Worker</h3>
+        <div class="file">src/background/index.ts</div>
+        <p>Message relay. Platform config holder. Opens dashboard tabs on OPEN_DASHBOARD message. Entry point: background build target.</p>
+      </div>
+
+    </div>
+  </section>
+</main>
+
+<footer>
+  <a href="https://github.com/ytann/token-wuer">github.com/ytann/token-wuer</a> &middot;
+  MIT License &middot;
+  All data stays local in chrome.storage.local
+</footer>
+
+<script>mermaid.initialize({ startOnLoad: true, theme: 'dark', flowchart: { useMaxWidth: true, htmlLabels: true, curve: 'basis' } });</script>
+</body>
+</html>
