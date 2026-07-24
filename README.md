@@ -93,7 +93,7 @@ It's just you and your data.
 
 The content script injects into LLM pages, scrapes assistant messages from the DOM,
 estimates token counts with a character-based heuristic, converts to water consumption,
-and persists everything locally. [See the full architecture flowchart →](docs/architecture.md)
+and persists everything locally. [See the full architecture flowchart →](https://ytann.github.io/token-wuer/)
 
 | Step | Module | What happens |
 |------|--------|-------------|
